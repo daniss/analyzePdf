@@ -1,0 +1,75 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Testing
+coverage/
+.nyc_output
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+htmlcov/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Production
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Uploads
+uploads/
+*.pdf
+*.jpg
+*.jpeg
+*.png
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Misc
+.vercel
+*.pem
+.turbo
+
+# Debug
+.vscode/
+*.log
