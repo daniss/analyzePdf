@@ -2,13 +2,15 @@
 
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, FileText, X, Loader2 } from 'lucide-react'
+import { Upload, FileText, X, Loader2, Check, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import { apiClient } from '@/lib/api'
+import { Invoice } from '@/lib/types'
 
 interface FileUploadProps {
-  onUpload: (files: File[]) => Promise<void>
+  onUpload?: (invoices: Invoice[]) => void
   accept?: Record<string, string[]>
   maxSize?: number
   maxFiles?: number
@@ -26,6 +28,8 @@ export function FileUpload({
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadResults, setUploadResults] = useState<Invoice[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(prev => [...prev, ...acceptedFiles].slice(0, maxFiles))
@@ -48,30 +52,56 @@ export function FileUpload({
 
     setUploading(true)
     setUploadProgress(0)
+    setError(null)
+    setUploadResults([])
 
     try {
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return prev
-          }
-          return prev + 10
-        })
-      }, 200)
+      const results: Invoice[] = []
+      const totalFiles = files.length
 
-      await onUpload(files)
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        
+        try {
+          // Update progress
+          setUploadProgress(((i) / totalFiles) * 90)
+          
+          // Upload file to backend
+          const invoice = await apiClient.uploadInvoice(file)
+          results.push(invoice)
+          
+        } catch (error) {
+          console.error(`Failed to upload ${file.name}:`, error)
+          // Continue with other files even if one fails
+          const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+          results.push({
+            id: `error-${i}`,
+            filename: file.name,
+            status: 'failed',
+            created_at: new Date().toISOString(),
+            error_message: errorMessage
+          })
+        }
+      }
       
-      clearInterval(progressInterval)
       setUploadProgress(100)
+      setUploadResults(results)
+      
+      // Call onUpload callback if provided
+      if (onUpload) {
+        onUpload(results)
+      }
       
       // Clear files after successful upload
       setTimeout(() => {
         setFiles([])
         setUploadProgress(0)
-      }, 1000)
+        setUploadResults([])
+      }, 3000)
+      
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      setError(errorMessage)
       console.error('Upload failed:', error)
     } finally {
       setUploading(false)
@@ -137,12 +167,19 @@ export function FileUpload({
         </div>
       )}
 
-      {uploadProgress > 0 && (
+      {uploadProgress > 0 && uploadProgress < 100 && (
         <div className="mt-4">
           <Progress value={uploadProgress} className="h-2" />
           <p className="text-sm text-muted-foreground mt-2">
-            Uploading... {uploadProgress}%
+            Processing invoices... {Math.round(uploadProgress)}%
           </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          <AlertCircle className="h-4 w-4" />
+          <span className="text-sm">{error}</span>
         </div>
       )}
 
@@ -167,17 +204,56 @@ export function FileUpload({
       )}
       
       {/* Processing completed state */}
-      {uploadProgress === 100 && (
-        <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl animate-scale-in">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-1 bg-green-500 rounded-full">
-              <Check className="h-4 w-4 text-white" />
+      {uploadResults.length > 0 && (
+        <div className="mt-6 space-y-4">
+          {uploadResults.map((invoice, index) => (
+            <div 
+              key={invoice.id}
+              className={cn(
+                "p-4 rounded-lg border",
+                invoice.status === 'completed' ? "bg-green-50 border-green-200" :
+                invoice.status === 'failed' ? "bg-red-50 border-red-200" :
+                "bg-yellow-50 border-yellow-200"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "p-1 rounded-full",
+                  invoice.status === 'completed' ? "bg-green-500" :
+                  invoice.status === 'failed' ? "bg-red-500" :
+                  "bg-yellow-500"
+                )}>
+                  {invoice.status === 'completed' ? (
+                    <Check className="h-4 w-4 text-white" />
+                  ) : invoice.status === 'failed' ? (
+                    <X className="h-4 w-4 text-white" />
+                  ) : (
+                    <Loader2 className="h-4 w-4 text-white animate-spin" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className={cn(
+                    "font-medium",
+                    invoice.status === 'completed' ? "text-green-800" :
+                    invoice.status === 'failed' ? "text-red-800" :
+                    "text-yellow-800"
+                  )}>
+                    {invoice.filename}
+                  </p>
+                  <p className={cn(
+                    "text-sm",
+                    invoice.status === 'completed' ? "text-green-600" :
+                    invoice.status === 'failed' ? "text-red-600" :
+                    "text-yellow-600"
+                  )}>
+                    {invoice.status === 'completed' && 'Successfully processed and ready for export'}
+                    {invoice.status === 'failed' && (invoice.error_message || 'Processing failed')}
+                    {invoice.status === 'processing' && 'Processing with Claude AI...'}
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="font-semibold text-green-800">Processing Complete!</p>
-          </div>
-          <p className="text-green-700">
-            Your invoices have been processed successfully. Data is ready for export.
-          </p>
+          ))}
         </div>
       )}
     </div>

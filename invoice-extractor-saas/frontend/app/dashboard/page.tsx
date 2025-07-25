@@ -1,29 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useAuth, withAuth } from '@/lib/auth-context'
+import { useInvoices, useDashboardStats, useExportInvoicesCSV, useExportInvoicesJSON } from '@/lib/hooks'
 import { FileUpload } from '@/components/invoice/file-upload'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Download, Calendar, DollarSign, Bot, Zap, TrendingUp, Clock, ArrowRight } from 'lucide-react'
+import { FileText, Download, Calendar, DollarSign, Bot, Zap, TrendingUp, Clock, ArrowRight, Loader2 } from 'lucide-react'
+import { Invoice } from '@/lib/types'
 
-export default function DashboardPage() {
-  const [recentInvoices, setRecentInvoices] = useState<any[]>([])
+function DashboardPage() {
+  const { user, logout } = useAuth()
+  const { data: invoices = [], isLoading, error, refetch } = useInvoices()
+  const stats = useDashboardStats()
+  const exportCSV = useExportInvoicesCSV()
+  const exportJSON = useExportInvoicesJSON()
 
-  const handleUpload = async (files: File[]) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Add mock invoices
-    const newInvoices = files.map((file, index) => ({
-      id: Date.now() + index,
-      filename: file.name,
-      uploadDate: new Date().toISOString(),
-      status: 'completed',
-      total: Math.floor(Math.random() * 10000) + 100,
-      invoiceNumber: `INV-${Math.floor(Math.random() * 10000)}`
-    }))
-    
-    setRecentInvoices(prev => [...newInvoices, ...prev])
+  const handleUpload = (newInvoices: Invoice[]) => {
+    // Refetch invoices to get the latest data
+    refetch()
+  }
+
+  const handleExportCSV = () => {
+    exportCSV.mutate()
+  }
+
+  const handleExportJSON = () => {
+    exportJSON.mutate()
+  }
+
+  const recentInvoices = invoices.slice(0, 5) // Show latest 5 invoices
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background gradient-mesh">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -42,8 +57,18 @@ export default function DashboardPage() {
               InvoiceAI
             </h1>
           </div>
-          <div className="ml-auto">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+          <div className="ml-auto flex items-center gap-4">
+            {user && (
+              <span className="text-sm text-muted-foreground">
+                Welcome, {user.email}
+              </span>
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground hover:text-foreground"
+              onClick={logout}
+            >
               Sign Out
             </Button>
           </div>
@@ -67,10 +92,10 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold mb-1">{recentInvoices.length}</div>
+              <div className="text-3xl font-bold mb-1">{stats.total_invoices}</div>
               <p className="text-sm flex items-center gap-1 text-green-600">
                 <TrendingUp className="h-4 w-4" />
-                Ready to process
+                {stats.completed_invoices} completed
               </p>
             </CardContent>
           </Card>
@@ -84,7 +109,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold mb-1">
-                ${recentInvoices.reduce((sum, inv) => sum + inv.total, 0).toLocaleString()}
+                ${stats.total_amount.toLocaleString()}
               </div>
               <p className="text-sm flex items-center gap-1 text-green-600">
                 <TrendingUp className="h-4 w-4" />
@@ -126,6 +151,26 @@ export default function DashboardPage() {
           </Card>
         </div>
 
+        {/* Error State */}
+        {error && (
+          <Card className="card-modern mb-12 border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 text-red-700">
+                <TrendingUp className="h-5 w-5" />
+                <p>Failed to load dashboard data. Please try refreshing the page.</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => refetch()}
+                  className="ml-auto"
+                >
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Upload Section */}
         <Card className="card-modern mb-12 overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 gradient-primary"></div>
@@ -159,10 +204,34 @@ export default function DashboardPage() {
                     Your recently processed invoices ready for export
                   </CardDescription>
                 </div>
-                <Button variant="outline" className="hidden md:flex">
-                  View All
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <div className="hidden md:flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleExportCSV}
+                    disabled={exportCSV.isPending}
+                  >
+                    {exportCSV.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    CSV
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleExportJSON}
+                    disabled={exportJSON.isPending}
+                  >
+                    {exportJSON.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    JSON
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -180,23 +249,39 @@ export default function DashboardPage() {
                         <div>
                           <p className="font-semibold text-lg mb-1">{invoice.filename}</p>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span className="font-medium">{invoice.invoiceNumber}</span>
+                            <span className="font-medium">{invoice.data?.invoice_number || 'N/A'}</span>
                             <span>·</span>
-                            <span className="font-semibold text-foreground">${invoice.total.toLocaleString()}</span>
+                            <span className="font-semibold text-foreground">
+                              ${(invoice.data?.total || 0).toLocaleString()}
+                            </span>
                             <span>·</span>
-                            <span>{new Date(invoice.uploadDate).toLocaleDateString()}</span>
+                            <span>{new Date(invoice.created_at).toLocaleDateString()}</span>
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
-                          <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                          Completed
+                        <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border ${
+                          invoice.status === 'completed' 
+                            ? 'bg-green-100 text-green-800 border-green-200'
+                            : invoice.status === 'processing'
+                            ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                            : 'bg-red-100 text-red-800 border-red-200'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full mr-2 ${
+                            invoice.status === 'completed' 
+                              ? 'bg-green-500'
+                              : invoice.status === 'processing'
+                              ? 'bg-yellow-500'
+                              : 'bg-red-500'
+                          }`}></div>
+                          {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                         </span>
-                        <Button size="sm" className="gradient-primary text-white border-0 shadow-md hover:shadow-lg transition-shadow">
-                          <Download className="h-4 w-4 mr-2" />
-                          Export
-                        </Button>
+                        {invoice.status === 'completed' && (
+                          <Button size="sm" className="gradient-primary text-white border-0 shadow-md hover:shadow-lg transition-shadow">
+                            <Download className="h-4 w-4 mr-2" />
+                            Export
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </Card>
@@ -234,3 +319,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+export default withAuth(DashboardPage)

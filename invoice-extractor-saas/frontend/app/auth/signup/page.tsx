@@ -2,36 +2,41 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileText } from 'lucide-react'
+import { FileText, AlertCircle } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
 
 export default function SignUpPage() {
-  const router = useRouter()
+  const { register, loading, error } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [companyName, setCompanyName] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [localError, setLocalError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLocalError('')
     
     if (password !== confirmPassword) {
-      alert('Passwords do not match')
+      setLocalError('Passwords do not match')
+      return
+    }
+
+    if (password.length < 8) {
+      setLocalError('Password must be at least 8 characters long')
       return
     }
     
-    setLoading(true)
-    
-    // Simulate registration
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Redirect to dashboard
-    router.push('/dashboard')
+    try {
+      await register(email, password, companyName || undefined)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed'
+      setLocalError(errorMessage)
+    }
   }
 
   return (
@@ -48,6 +53,12 @@ export default function SignUpPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {(localError || error) && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm">{localError || error}</span>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
