@@ -165,6 +165,21 @@ export function FileUpload({
           )}
         </Button>
       )}
+      
+      {/* Processing completed state */}
+      {uploadProgress === 100 && (
+        <div className="mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl animate-scale-in">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-1 bg-green-500 rounded-full">
+              <Check className="h-4 w-4 text-white" />
+            </div>
+            <p className="font-semibold text-green-800">Processing Complete!</p>
+          </div>
+          <p className="text-green-700">
+            Your invoices have been processed successfully. Data is ready for export.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
