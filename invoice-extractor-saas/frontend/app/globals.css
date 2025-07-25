@@ -61,33 +61,50 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
   /* Modern typography */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+    font-weight: 600;
+    letter-spacing: -0.025em;
   }
   
   h1 {
-    @apply text-4xl leading-tight lg:text-6xl lg:leading-tight;
+    font-size: 2.25rem; /* text-4xl */
+    line-height: 1.25; /* leading-tight */
     font-weight: 700;
     letter-spacing: -0.025em;
   }
   
+  @media (min-width: 1024px) {
+    h1 {
+      font-size: 3.75rem; /* lg:text-6xl */
+    }
+  }
+  
   h2 {
-    @apply text-3xl leading-tight lg:text-4xl;
+    font-size: 1.875rem; /* text-3xl */
+    line-height: 1.25; /* leading-tight */
     font-weight: 600;
     letter-spacing: -0.02em;
   }
   
+  @media (min-width: 1024px) {
+    h2 {
+      font-size: 2.25rem; /* lg:text-4xl */
+    }
+  }
+  
   /* Smooth transitions */
   * {
-    @apply transition-colors duration-200;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-duration: 200ms;
   }
 }
 
@@ -106,12 +123,18 @@
   
   /* Glass morphism effect */
   .glass {
-    @apply backdrop-blur-xl bg-white/10 border border-white/20;
+    backdrop-filter: blur(24px);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
   /* Modern card styles */
   .card-modern {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl shadow-lg shadow-black/5;
+    background-color: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--border) / 0.5);
+    border-radius: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
   
   /* Animated elements */

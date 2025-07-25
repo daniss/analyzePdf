@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from './api'
-import { Invoice, User } from './types'
+// Types are imported but not directly used in this hooks file
+// import { Invoice, User } from './types'
 
 // Invoice hooks
 export function useInvoices() {

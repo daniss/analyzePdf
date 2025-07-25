@@ -126,7 +126,7 @@ export default function Home() {
               </div>
               <CardTitle className="text-xl mb-2">Lightning Fast</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Process invoices in under 10 seconds using Claude 4's advanced vision capabilities
+                Process invoices in under 10 seconds using Claude 4&apos;s advanced vision capabilities
               </CardDescription>
             </CardHeader>
           </Card>
@@ -138,7 +138,7 @@ export default function Home() {
               </div>
               <CardTitle className="text-xl mb-2">99% Accuracy</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Claude 4's advanced vision AI ensures industry-leading extraction accuracy
+                Claude 4&apos;s advanced vision AI ensures industry-leading extraction accuracy
               </CardDescription>
             </CardHeader>
           </Card>

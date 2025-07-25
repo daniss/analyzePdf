@@ -5,7 +5,7 @@ import { useInvoices, useDashboardStats, useExportInvoicesCSV, useExportInvoices
 import { FileUpload } from '@/components/invoice/file-upload'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Download, Calendar, DollarSign, Bot, Zap, TrendingUp, Clock, ArrowRight, Loader2 } from 'lucide-react'
+import { FileText, Download, DollarSign, Bot, Zap, TrendingUp, Clock, Loader2 } from 'lucide-react'
 import { Invoice } from '@/lib/types'
 
 function DashboardPage() {
@@ -15,7 +15,7 @@ function DashboardPage() {
   const exportCSV = useExportInvoicesCSV()
   const exportJSON = useExportInvoicesJSON()
 
-  const handleUpload = (newInvoices: Invoice[]) => {
+  const handleUpload = () => {
     // Refetch invoices to get the latest data
     refetch()
   }

@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Store user in cookie for quick access
           Cookies.set('user', JSON.stringify(currentUser), { expires: 7 })
         }
-      } catch (error) {
+      } catch {
         // Token might be invalid, clear it
         apiClient.logout()
         setUser(null)
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       
       // Register user
-      const newUser = await apiClient.register({
+      await apiClient.register({
         email,
         password,
         company_name: companyName

@@ -114,7 +114,7 @@ export function FileUpload({
         {...getRootProps()}
         className={cn(
           "relative border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-          isDragActive ? "border-primary bg-primary/5" : "border-border",
+          isDragActive ? "border-primary bg-primary/5" : "border-border/60",
           uploading && "opacity-50 cursor-not-allowed"
         )}
       >
@@ -206,7 +206,7 @@ export function FileUpload({
       {/* Processing completed state */}
       {uploadResults.length > 0 && (
         <div className="mt-6 space-y-4">
-          {uploadResults.map((invoice, index) => (
+          {uploadResults.map((invoice) => (
             <div 
               key={invoice.id}
               className={cn(
