@@ -24,10 +24,12 @@ InvoiceAI is an AI-powered PDF invoice data extractor SaaS that uses Claude 4 Op
 
 ### Claude 4 Integration
 - Located in `backend/core/ai/claude_processor.py`
-- Uses multimodal Claude to process invoice images directly
-- No traditional OCR needed - Claude handles both text extraction and understanding
-- Processes up to 10 pages per invoice
-- Returns structured data with validation
+- Uses Claude 4 Opus multimodal capabilities for invoice processing
+- GDPR-compliant with transfer risk assessment before API calls
+- Comprehensive audit logging for all Claude API interactions
+- Processes multiple pages per invoice with structured data extraction
+- Automatic data subject creation from extracted invoice information
+- Returns validated data with confidence scoring
 
 ## Development Commands
 
@@ -84,6 +86,14 @@ pytest --cov=. --cov-report=html
 cd frontend
 npm run test
 npm run test:e2e
+
+# Linting and formatting
+cd frontend
+npm run lint
+
+# Type checking (frontend uses TypeScript)
+cd frontend
+npx tsc --noEmit
 ```
 
 ## Environment Configuration
@@ -91,10 +101,13 @@ npm run test:e2e
 ### Backend Required Variables
 ```bash
 # backend/.env
-ANTHROPIC_API_KEY=sk-ant-...  # Required for Claude 4
+ANTHROPIC_API_KEY=sk-ant-...  # Required for Claude 4 Opus
 DATABASE_URL=postgresql+asyncpg://postgres:password@localhost/invoiceai
 REDIS_URL=redis://localhost:6379
 SECRET_KEY=your-secret-key-here  # Change in production
+ENCRYPTION_KEY=your-32-byte-encryption-key  # For GDPR data encryption
+AI_MODEL=claude-3-opus-20240229  # Claude model to use
+MAX_TOKENS=4000  # Max tokens for Claude API calls
 ```
 
 ### Frontend Variables
@@ -106,57 +119,86 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ## Current Implementation Status
 
 ### ✅ Completed
-- Basic project structure and Docker setup
-- Claude 4 vision integration for invoice processing
-- PDF to image conversion pipeline
+- Full project structure with Docker setup
+- Claude 4 Opus vision integration for invoice processing
+- PDF to image conversion pipeline with pypdfium2
+- Complete database models with Alembic migrations
+- GDPR-compliant data processing and storage
+- Comprehensive audit logging system
+- Data subject management and rights handling
+- Transfer risk assessment for Claude API
 - Frontend UI with landing page and dashboard
 - File upload component with drag-and-drop
-- Mock authentication pages
+- Encrypted data storage and transit security
 
 ### ❌ Not Implemented (TODOs in code)
-- Database models and migrations
-- Real JWT authentication (currently mock)
-- Actual data persistence (invoices stored in memory)
+- JWT authentication implementation (auth endpoints exist but not integrated)
 - Stripe payment integration
 - Email notifications
 - S3/R2 file storage (using local storage)
-- Rate limiting and security hardening
-- Testing infrastructure
+- Rate limiting middleware
+- Frontend test suite
+- Backend test suite
 
 ## Important Code Locations
 
-### Backend
+### Backend Core
 - `backend/main.py` - FastAPI app configuration and routers
+- `backend/core/config.py` - Application settings and environment variables
+- `backend/core/database.py` - Database connection and session management
+
+### API Endpoints
 - `backend/api/invoices.py` - Invoice upload and processing endpoints
-- `backend/core/ai/claude_processor.py` - Claude 4 vision integration
-- `backend/core/pdf_processor.py` - PDF to image conversion
-- `backend/core/config.py` - Application settings
+- `backend/api/auth.py` - Authentication endpoints (registration, login)
+- `backend/api/exports.py` - Data export functionality (CSV, JSON)
+- `backend/api/gdpr_rights.py` - GDPR subject rights endpoints
+
+### AI Processing
+- `backend/core/ai/claude_processor.py` - Claude 4 Opus vision integration with GDPR compliance
+- `backend/core/pdf_processor.py` - PDF to image conversion using pypdfium2
+
+### Data Models and Storage
+- `backend/models/gdpr_models.py` - Database models for GDPR compliance
+- `backend/models/user.py` - User authentication models
+- `backend/crud/` - Database operations (invoice, user, audit, data_subject)
+- `backend/schemas/` - Pydantic schemas for API validation
+
+### GDPR Compliance
+- `backend/core/gdpr_audit.py` - Audit logging for GDPR compliance
+- `backend/core/gdpr_encryption.py` - Data encryption for sensitive information
+- `backend/core/gdpr_transfer_compliance.py` - International transfer compliance
+- `backend/core/gdpr_helpers.py` - GDPR utility functions
 
 ### Frontend
 - `frontend/app/page.tsx` - Landing page
 - `frontend/app/dashboard/page.tsx` - Main dashboard
 - `frontend/components/invoice/file-upload.tsx` - File upload component
 - `frontend/app/auth/` - Authentication pages (signin/signup)
+- `frontend/lib/api.ts` - API client for backend communication
 
-## Common Development Tasks
+## GDPR Compliance Features
 
-### Add a New API Endpoint
-1. Create route function in appropriate file under `backend/api/`
-2. Add Pydantic schema in `backend/schemas/`
-3. Include router in `backend/main.py`
-4. Update frontend API client to call new endpoint
+### Data Subject Rights
+- Right to access personal data
+- Right to rectification (data correction)
+- Right to erasure (data deletion)
+- Right to data portability
+- All rights accessible via `/api/gdpr-rights/` endpoints
 
-### Modify Invoice Data Structure
-1. Update `backend/schemas/invoice.py` with new fields
-2. Modify `backend/core/ai/claude_processor.py` extraction prompt
-3. Update frontend TypeScript interfaces
-4. Adjust export formats in `backend/api/exports.py`
+### Audit Logging
+- All data processing operations are logged
+- Audit logs include user, operation type, data categories, and risk level
+- GDPR-compliant retention and deletion of audit logs
 
-### Deploy to Production
-1. Frontend: `cd frontend && vercel deploy`
-2. Backend: Deploy to Railway/Render with environment variables
-3. Database: Use managed PostgreSQL (Neon/Supabase)
-4. Set production `ANTHROPIC_API_KEY` and `SECRET_KEY`
+### Data Encryption
+- Sensitive data encrypted at rest using AES-256
+- Encryption keys managed securely
+- Transit encryption for Claude API communication
+
+### Transfer Compliance
+- Risk assessment before international data transfers
+- Approval workflow for high-risk transfers
+- Compliance with GDPR Chapter V requirements
 
 ## Cost Considerations
 - Claude 4 Opus uses ~1000 tokens per invoice page

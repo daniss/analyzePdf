@@ -18,7 +18,7 @@ export default function Home() {
                 </div>
               </div>
               <span className="font-bold text-xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                InvoiceAI
+                InvoiceAI France
               </span>
             </Link>
           </div>
@@ -55,32 +55,33 @@ export default function Home() {
         <div className="mx-auto max-w-4xl text-center animate-fade-in">
           <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-primary">
             <Sparkles className="h-4 w-4" />
-            Powered by Claude 4 AI Vision
+            Spécialisé pour les Experts-Comptables Français
           </div>
           
           <h1 className="text-5xl font-bold tracking-tight sm:text-7xl lg:text-8xl mb-8">
-            Transform
+            Révolutionnez
             <span className="block bg-gradient-to-r from-primary via-purple-500 to-primary bg-clip-text text-transparent animate-slide-up">
-              Invoice Processing
+              Votre Comptabilité
             </span>
-            <span className="text-4xl sm:text-5xl lg:text-6xl text-muted-foreground font-normal">in seconds</span>
+            <span className="text-4xl sm:text-5xl lg:text-6xl text-muted-foreground font-normal">en quelques secondes</span>
           </h1>
           
           <p className="mt-8 text-xl leading-8 text-muted-foreground max-w-2xl mx-auto">
-            Experience the future of document processing with AI that sees, understands, and extracts data with
-            <span className="text-foreground font-semibold"> 99% accuracy</span>
+            La solution IA française pour les experts-comptables : traitement automatique des factures avec
+            <span className="text-foreground font-semibold"> 99% de précision</span>
+            et conformité GDPR garantie
           </p>
           
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button size="xl" asChild className="gradient-primary text-white border-0 shadow-2xl hover:shadow-primary/25 transition-all duration-300 animate-scale-in w-full sm:w-auto">
               <Link href="/auth/signup" className="text-lg px-8 py-4">
-                Start Processing Now
+                Commencer Gratuitement
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button variant="ghost" size="xl" asChild className="text-lg hover:bg-primary/5 w-full sm:w-auto">
               <Link href="#demo" className="px-8 py-4">
-                See it in Action
+                Voir la Démo
               </Link>
             </Button>
           </div>
@@ -88,15 +89,15 @@ export default function Home() {
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Check className="h-5 w-5 text-green-500" />
-              No credit card required
+              Sans carte bancaire
             </div>
             <div className="flex items-center gap-2">
               <Check className="h-5 w-5 text-green-500" />
-              5 free invoices monthly
+              5 factures gratuites/mois
             </div>
             <div className="flex items-center gap-2">
               <Check className="h-5 w-5 text-green-500" />
-              Setup in under 2 minutes
+              Configuration en 2 minutes
             </div>
           </div>
         </div>
@@ -107,14 +108,14 @@ export default function Home() {
         <div className="mx-auto max-w-3xl text-center mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-sm font-medium text-muted-foreground mb-6">
             <Sparkles className="h-4 w-4" />
-            Powered by Claude 4 Vision
+            Solution Certifiée pour la France
           </div>
           <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6">
-            Everything you need for
-            <span className="block text-primary">modern invoice processing</span>
+            Tout ce dont vous avez besoin pour
+            <span className="block text-primary">votre comptabilité française</span>
           </h2>
           <p className="text-xl text-muted-foreground">
-            Built with cutting-edge AI technology to handle any invoice format with unprecedented accuracy
+            Spécialement conçu pour les experts-comptables français : SIREN/SIRET, TVA, Plan Comptable Général
           </p>
         </div>
 
@@ -124,9 +125,9 @@ export default function Home() {
               <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 group-hover:from-primary/30 group-hover:to-primary/20 transition-colors">
                 <Zap className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="text-xl mb-2">Lightning Fast</CardTitle>
+              <CardTitle className="text-xl mb-2">Traitement Instantané</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Process invoices in under 10 seconds using Claude 4&apos;s advanced vision capabilities
+                Traitement des factures françaises en moins de 10 secondes avec reconnaissance SIREN/SIRET automatique
               </CardDescription>
             </CardHeader>
           </Card>
@@ -136,9 +137,9 @@ export default function Home() {
               <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500/20 to-green-500/10 group-hover:from-green-500/30 group-hover:to-green-500/20 transition-colors">
                 <Shield className="h-8 w-8 text-green-600" />
               </div>
-              <CardTitle className="text-xl mb-2">99% Accuracy</CardTitle>
+              <CardTitle className="text-xl mb-2">Conformité Française</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Claude 4&apos;s advanced vision AI ensures industry-leading extraction accuracy
+                Extraction des 24+ champs obligatoires français avec validation automatique des numéros SIREN/SIRET
               </CardDescription>
             </CardHeader>
           </Card>
@@ -148,9 +149,9 @@ export default function Home() {
               <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-500/10 group-hover:from-blue-500/30 group-hover:to-blue-500/20 transition-colors">
                 <FileText className="h-8 w-8 text-blue-600" />
               </div>
-              <CardTitle className="text-xl mb-2">Any Format</CardTitle>
+              <CardTitle className="text-xl mb-2">Formats Français</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Handles PDFs, images, and scanned documents with various layouts seamlessly
+                Compatible avec tous les formats de factures françaises, y compris les modèles complexes multi-pages
               </CardDescription>
             </CardHeader>
           </Card>
@@ -160,9 +161,9 @@ export default function Home() {
               <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/10 group-hover:from-purple-500/30 group-hover:to-purple-500/20 transition-colors">
                 <BarChart3 className="h-8 w-8 text-purple-600" />
               </div>
-              <CardTitle className="text-xl mb-2">Smart Analytics</CardTitle>
+              <CardTitle className="text-xl mb-2">Export Sage, EBP, Ciel</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Track processing metrics and gain insights into your invoice data patterns
+                Export direct vers vos logiciels comptables français : Sage, EBP, Ciel, plus format FEC pour la DGFiP
               </CardDescription>
             </CardHeader>
           </Card>
@@ -172,9 +173,9 @@ export default function Home() {
               <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500/20 to-orange-500/10 group-hover:from-orange-500/30 group-hover:to-orange-500/20 transition-colors">
                 <Clock className="h-8 w-8 text-orange-600" />
               </div>
-              <CardTitle className="text-xl mb-2">Batch Processing</CardTitle>
+              <CardTitle className="text-xl mb-2">Traitement par Lot</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Upload and process multiple invoices simultaneously for maximum efficiency
+                Traitez jusqu'à 100+ factures simultanément pour un gain de temps maximum sur vos saisies
               </CardDescription>
             </CardHeader>
           </Card>
@@ -184,9 +185,9 @@ export default function Home() {
               <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500/20 to-teal-500/10 group-hover:from-teal-500/30 group-hover:to-teal-500/20 transition-colors">
                 <Download className="h-8 w-8 text-teal-600" />
               </div>
-              <CardTitle className="text-xl mb-2">Export Options</CardTitle>
+              <CardTitle className="text-xl mb-2">Économies Garanties</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Download as CSV, JSON, or integrate directly with your accounting software
+                Réduisez vos coûts de saisie de 12€ à 3€ par facture, soit 75% d'économies sur votre poste de travail
               </CardDescription>
             </CardHeader>
           </Card>
@@ -198,10 +199,10 @@ export default function Home() {
         <div className="container">
           <div className="mx-auto max-w-3xl text-center mb-20">
             <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6">
-              How it works
+              Comment ça marche
             </h2>
             <p className="text-xl text-muted-foreground">
-              Three simple steps to transform your invoice processing workflow
+              Trois étapes simples pour automatiser votre saisie comptable française
             </p>
           </div>
 
@@ -217,9 +218,9 @@ export default function Home() {
                     1
                   </div>
                 </div>
-                <h3 className="mb-4 text-2xl font-semibold">Upload Invoice</h3>
+                <h3 className="mb-4 text-2xl font-semibold">Importer la Facture</h3>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  Simply drag and drop your PDF or image files into our secure, encrypted platform
+                  Glissez-déposez vos factures PDF françaises dans notre plateforme sécurisée et conforme GDPR
                 </p>
               </div>
               
@@ -230,9 +231,9 @@ export default function Home() {
                     2
                   </div>
                 </div>
-                <h3 className="mb-4 text-2xl font-semibold">AI Processing</h3>
+                <h3 className="mb-4 text-2xl font-semibold">Traitement IA</h3>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  Claude 4 AI analyzes and extracts all invoice data with remarkable precision
+                  L'IA reconnait automatiquement SIREN, SIRET, TVA et tous les champs obligatoires français
                 </p>
               </div>
               
@@ -243,9 +244,9 @@ export default function Home() {
                     3
                   </div>
                 </div>
-                <h3 className="mb-4 text-2xl font-semibold">Export Data</h3>
+                <h3 className="mb-4 text-2xl font-semibold">Export Comptable</h3>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  Download structured data instantly or integrate with your existing tools
+                  Export direct vers Sage, EBP, Ciel ou format FEC pour l'administration fiscale
                 </p>
               </div>
             </div>
@@ -257,47 +258,47 @@ export default function Home() {
       <section id="pricing" className="container py-32 sm:py-40">
         <div className="mx-auto max-w-3xl text-center mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-sm font-medium text-muted-foreground mb-6">
-            Simple Pricing
+            Tarifs Adaptés aux Experts-Comptables
           </div>
           <h2 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6">
-            Choose your plan
+            Choisissez votre formule
           </h2>
           <p className="text-xl text-muted-foreground">
-            Transparent pricing that scales with your business needs
+            Tarification transparente qui s'adapte à la taille de votre cabinet comptable
           </p>
         </div>
 
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3">
           <Card className="card-modern hover:shadow-2xl transition-all duration-300">
             <CardHeader className="pb-8">
-              <CardTitle className="text-2xl">Free</CardTitle>
-              <CardDescription className="text-lg">Perfect for trying out our service</CardDescription>
+              <CardTitle className="text-2xl">Découverte</CardTitle>
+              <CardDescription className="text-lg">Parfait pour tester avec vos premiers clients</CardDescription>
               <div className="mt-6">
-                <span className="text-5xl font-bold">$0</span>
-                <span className="text-xl text-muted-foreground">/month</span>
+                <span className="text-5xl font-bold">0€</span>
+                <span className="text-xl text-muted-foreground">/mois</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <ul className="space-y-4 text-base">
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  5 invoices per month
+                  5 factures françaises/mois
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  Claude 4 AI processing
+                  Reconnaissance SIREN/SIRET
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  CSV export
+                  Export CSV/JSON français
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  Email support
+                  Support par email
                 </li>
               </ul>
               <Button className="mt-8 w-full" variant="outline" size="lg" asChild>
-                <Link href="/auth/signup">Get Started Free</Link>
+                <Link href="/auth/signup">Commencer Gratuitement</Link>
               </Button>
             </CardContent>
           </Card>
@@ -308,76 +309,76 @@ export default function Home() {
               Most Popular
             </div>
             <CardHeader className="pb-8">
-              <CardTitle className="text-2xl">Professional</CardTitle>
-              <CardDescription className="text-lg">For growing businesses</CardDescription>
+              <CardTitle className="text-2xl">Cabinet Standard</CardTitle>
+              <CardDescription className="text-lg">Pour cabinets 1-5 collaborateurs (20-50 clients)</CardDescription>
               <div className="mt-6">
-                <span className="text-5xl font-bold">$29</span>
-                <span className="text-xl text-muted-foreground">/month</span>
+                <span className="text-5xl font-bold">39€</span>
+                <span className="text-xl text-muted-foreground">/mois</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <ul className="space-y-4 text-base">
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  100 invoices per month
+                  150 factures/mois
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  Advanced AI extraction
+                  Tous exports : Sage, EBP, Ciel, FEC
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  All export formats
+                  Validation conformité française
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  API access
+                  Traitement par lots
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  Priority support
+                  Support prioritaire expert-comptable
                 </li>
               </ul>
               <Button className="mt-8 w-full gradient-primary text-white border-0 shadow-lg" size="lg" asChild>
-                <Link href="/auth/signup">Start Free Trial</Link>
+                <Link href="/auth/signup">Essai Gratuit 14 Jours</Link>
               </Button>
             </CardContent>
           </Card>
 
           <Card className="card-modern hover:shadow-2xl transition-all duration-300">
             <CardHeader className="pb-8">
-              <CardTitle className="text-2xl">Business</CardTitle>
-              <CardDescription className="text-lg">For larger operations</CardDescription>
+              <CardTitle className="text-2xl">Cabinet Premium</CardTitle>
+              <CardDescription className="text-lg">Pour gros cabinets 5-15 collaborateurs (100+ clients)</CardDescription>
               <div className="mt-6">
-                <span className="text-5xl font-bold">$99</span>
-                <span className="text-xl text-muted-foreground">/month</span>
+                <span className="text-5xl font-bold">129€</span>
+                <span className="text-xl text-muted-foreground">/mois</span>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <ul className="space-y-4 text-base">
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  500 invoices per month
+                  600 factures/mois
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  Everything in Pro
+                  API pour intégration personnalisée
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  Batch processing
+                  Formation équipe incluse
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  Custom fields
+                  Champs personnalisés cabinet
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-green-500" />
-                  Dedicated support
+                  Support dédié + hotline
                 </li>
               </ul>
               <Button className="mt-8 w-full" variant="outline" size="lg" asChild>
-                <Link href="/auth/signup">Contact Sales</Link>
+                <Link href="/auth/signup">Nous Contacter</Link>
               </Button>
             </CardContent>
           </Card>
@@ -390,37 +391,37 @@ export default function Home() {
         <div className="container relative">
           <div className="mx-auto max-w-4xl text-center">
             <h2 className="text-4xl font-bold tracking-tight sm:text-6xl mb-8">
-              Ready to transform your
-              <span className="block text-primary">invoice processing?</span>
+              Prêt à automatiser votre
+              <span className="block text-primary">saisie comptable ?</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
-              Join hundreds of accounting firms and businesses already saving hours every day with AI-powered invoice processing
+              Rejoignez des centaines d'experts-comptables qui économisent déjà 15-30 minutes par client chaque mois
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="xl" asChild className="gradient-primary text-white border-0 shadow-2xl hover:shadow-primary/25 transition-all duration-300 w-full sm:w-auto">
                 <Link href="/auth/signup" className="text-lg px-10 py-6">
-                  Start Processing Now
+                  Commencer Maintenant
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               <Button variant="ghost" size="xl" asChild className="text-lg hover:bg-primary/5 w-full sm:w-auto">
                 <Link href="#demo" className="px-10 py-6">
-                  Watch Demo
+                  Voir la Démo
                 </Link>
               </Button>
             </div>
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-8 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-green-500" />
-                14-day free trial
+                Essai gratuit 14 jours
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-green-500" />
-                Cancel anytime
+                Résiliation à tout moment
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-green-500" />
-                No setup fees
+                Aucun frais d'installation
               </div>
             </div>
           </div>
@@ -439,15 +440,15 @@ export default function Home() {
                 </div>
               </div>
               <span className="font-bold text-xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                InvoiceAI
+                InvoiceAI France
               </span>
             </div>
             <div className="flex flex-col items-center gap-2 md:items-end">
               <p className="text-sm text-muted-foreground">
-                Powered by Claude 4 AI Vision
+                Solution IA française pour experts-comptables
               </p>
               <p className="text-xs text-muted-foreground">
-                © 2024 InvoiceAI. All rights reserved.
+                © 2024 InvoiceAI France. Tous droits réservés.
               </p>
             </div>
           </div>
