@@ -52,20 +52,20 @@ const exportFormats: ExportFormat[] = [
     recommended: true
   },
   {
-    id: 'json',
-    name: 'JSON Structuré',
-    description: 'Fichiers JSON individuels dans une archive ZIP',
-    icon: <Code className="h-4 w-4" />,
-    extension: '.json',
-    category: 'standard'
-  },
-  {
     id: 'sage',
     name: 'Sage PNM',
     description: 'Fichier unique PNM avec toutes les factures',
     icon: <Building2 className="h-4 w-4" />,
     extension: '.pnm',
     category: 'accounting'
+  },
+  {
+    id: 'json',
+    name: 'JSON Structuré',
+    description: 'Fichiers JSON individuels dans une archive ZIP',
+    icon: <Code className="h-4 w-4" />,
+    extension: '.json',
+    category: 'standard'
   },
   {
     id: 'ebp',

@@ -1,5 +1,5 @@
 /**
- * French Localization for InvoiceAI France
+ * French Localization for ComptaFlow France
  * 
  * Provides French translations and formatting for the application
  * specifically tailored for French accounting professionals.
@@ -20,7 +20,7 @@ export const frenchTranslations = {
     export: "Exporter",
     import: "Importer",
     download: "Télécharger",
-    upload: "Téléverser",
+    upload: "Importer",
     next: "Suivant",
     previous: "Précédent",
     close: "Fermer",
@@ -146,7 +146,7 @@ export const frenchTranslations = {
     monthlyStats: "Statistiques mensuelles",
     processingQueue: "File d'attente",
     quickActions: "Actions rapides",
-    uploadInvoice: "Téléverser une facture",
+    uploadInvoice: "Importer une facture",
     viewAllInvoices: "Voir toutes les factures",
     
     // Statistics
@@ -167,10 +167,10 @@ export const frenchTranslations = {
     supportedFormats: "Formats supportés: PDF, PNG, JPG",
     maxFileSize: "Taille maximale: 10 MB",
     selectFiles: "Sélectionner des fichiers",
-    uploading: "Téléversement en cours...",
+    uploading: "Importation en cours...",
     processingInvoice: "Traitement de la facture...",
-    uploadComplete: "Téléversement terminé",
-    uploadFailed: "Échec du téléversement"
+    uploadComplete: "Importation terminée",
+    uploadFailed: "Échec de l'importation"
   },
 
   // Errors and messages

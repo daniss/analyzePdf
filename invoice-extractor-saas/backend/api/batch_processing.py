@@ -144,9 +144,8 @@ async def batch_process_invoices(
         batch_temp_dir = os.path.join(tempfile.gettempdir(), f"batch_{batch_id}")
         os.makedirs(batch_temp_dir, exist_ok=True)
         
-        # Store files and create invoice records
-        invoice_ids = []
-        file_paths = []
+        # GDPR-COMPLIANT: Prepare file data for memory-only processing
+        invoice_data_list = []
         
         for file in files:
             contents = await file.read()
@@ -164,20 +163,14 @@ async def batch_process_invoices(
                 batch_id=batch_id
             )
             
-            # Save file in batch temp directory
-            file_path = os.path.join(batch_temp_dir, f"{db_invoice.id}_{file.filename}")
-            async with aiofiles.open(file_path, 'wb') as f:
-                await f.write(contents)
-            
-            invoice_ids.append(str(db_invoice.id))
-            file_paths.append(file_path)
+            # GDPR-COMPLIANT: Keep file content in memory only
+            invoice_data_list.append((str(db_invoice.id), contents, file.filename))
         
         # Start batch processing in background
         background_tasks.add_task(
             process_batch_task,
             batch_id,
-            invoice_ids,
-            file_paths,
+            invoice_data_list,
             current_user.id,
             batch_temp_dir
         )
@@ -185,8 +178,8 @@ async def batch_process_invoices(
         return JSONResponse(content={
             "batch_id": batch_id,
             "status": "processing",
-            "invoice_count": len(files),
-            "message": f"Processing {len(files)} invoices for review"
+            "invoice_count": len(invoice_data_list),
+            "message": f"Processing {len(invoice_data_list)} invoices for review"
         })
         
     except Exception as e:
@@ -265,8 +258,7 @@ async def download_batch_export(
 
 async def process_batch_task(
     batch_id: str,
-    invoice_ids: List[str],
-    file_paths: List[str],
+    invoice_data_list: List[tuple],  # (invoice_id, file_content, filename)
     user_id: uuid.UUID,
     batch_temp_dir: str
 ):
@@ -280,7 +272,7 @@ async def process_batch_task(
             status_data = {
                 "batch_id": batch_id,
                 "status": "processing",
-                "total_invoices": len(invoice_ids),
+                "total_invoices": len(invoice_data_list),
                 "processed_invoices": 0,
                 "failed_invoices": 0,
                 "started_at": datetime.utcnow().isoformat()
@@ -294,7 +286,7 @@ async def process_batch_task(
             processed_data = []
             groq_processor = GroqProcessor()
             
-            for i, (invoice_id, file_path) in enumerate(zip(invoice_ids, file_paths)):
+            for i, (invoice_id, file_content, filename) in enumerate(invoice_data_list):
                 try:
                     # Update status
                     status_data["processed_invoices"] = i
@@ -310,11 +302,7 @@ async def process_batch_task(
                         processing_started_at=datetime.utcnow()
                     )
                     
-                    # Read and process file
-                    async with aiofiles.open(file_path, 'rb') as f:
-                        file_content = await f.read()
-                    
-                    filename = os.path.basename(file_path).split('_', 1)[1]  # Remove UUID prefix
+                    # GDPR-COMPLIANT: Process file content directly from memory
                     
                     # Extract text and images
                     extracted_text, base64_images = await PDFProcessor.process_uploaded_file(

@@ -533,15 +533,15 @@ class ProcessingOrchestrator:
         if not invoice:
             raise ValueError("Invoice not found")
         
-        # Reconstruct file path
-        import os
-        from core.config import settings
-        file_path = os.path.join(settings.LOCAL_STORAGE_PATH, f"{invoice_id}_{invoice.filename}")
+        # GDPR-COMPLIANT: Files are processed in memory, no file path needed
+        # This orchestrator method may need refactoring to support memory-based processing
         
-        # Process with forced tier
-        return await self.process_invoice(
-            invoice_id=invoice_id,
-            file_path=file_path,
+        # TODO: Update orchestrator to use memory-based processing
+        # For now, raise exception to indicate this method needs updating
+        raise NotImplementedError(
+            "GDPR Compliance: This orchestrator method needs to be updated for memory-based processing. "
+            "Files are no longer stored on disk."
+        )
             db=db,
             user_id=user_id,
             force_tier=target_tier

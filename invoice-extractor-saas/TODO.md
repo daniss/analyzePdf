@@ -1,4 +1,4 @@
-# InvoiceAI - Development TODO List
+# ComptaFlow - Development TODO List
 
 ## 🎯 Project Status
 - ✅ Basic project structure created

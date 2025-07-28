@@ -20,8 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p uploads
+# GDPR-compliant: No uploads directory needed - files processed in memory only
 
 # Expose port
 EXPOSE 8000

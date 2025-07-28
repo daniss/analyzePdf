@@ -1,43 +1,117 @@
 'use client'
 
 import { useAuth, withAuth } from '@/lib/auth-context'
-import { useInvoices, useDashboardStats, useExportInvoicesCSV, useExportInvoicesJSON } from '@/lib/hooks'
+import { useInvoices, useDashboardStats } from '@/lib/hooks'
 import { ProgressiveInvoiceCard } from '@/components/invoice/progressive-invoice-card'
 import { BatchUpload } from '@/components/invoice/batch-upload'
 import { BulkExportSelector } from '@/components/invoice/bulk-export-selector'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Download, DollarSign, Bot, Zap, TrendingUp, Clock, Loader2 } from 'lucide-react'
+import { FileText, Download, DollarSign, Bot, Zap, TrendingUp, Clock, Loader2, X } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 function DashboardPage() {
   const { user, logout } = useAuth()
   const { data: invoices = [], isLoading, error, refetch } = useInvoices()
   const { data: statsData } = useDashboardStats()
-  const exportCSV = useExportInvoicesCSV()
-  const exportJSON = useExportInvoicesJSON()
 
   const handleUpload = () => {
     // Refetch invoices to get the latest data
     refetch()
   }
 
-  const handleExportCSV = () => {
-    exportCSV.mutate()
+  const handleApproveAll = async () => {
+    const pendingInvoices = invoices.filter(invoice => 
+      invoice.status === 'completed' && 
+      invoice.processing_source === 'batch' &&
+      (!invoice.review_status || invoice.review_status === 'pending_review')
+    )
+
+    if (pendingInvoices.length === 0) return
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('access_token='))
+        ?.split('=')[1]
+      
+      if (!token) {
+        toast.error('Token d\'authentification introuvable')
+        return
+      }
+
+      // Approve all pending invoices
+      const approvalPromises = pendingInvoices.map(invoice => 
+        fetch(`${apiUrl}/api/invoices/${invoice.id}/review-status`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status: 'approved' })
+        })
+      )
+
+      const results = await Promise.all(approvalPromises)
+      const successCount = results.filter(response => response.ok).length
+
+      if (successCount === pendingInvoices.length) {
+        toast.success(`${successCount} facture${successCount > 1 ? 's' : ''} approuvée${successCount > 1 ? 's' : ''} avec succès`)
+      } else {
+        toast.error(`${successCount}/${pendingInvoices.length} factures approuvées. Certaines ont échoué.`)
+      }
+
+      // Refresh the invoice list
+      refetch()
+    } catch (error) {
+      console.error('Error approving all invoices:', error)
+      toast.error('Erreur lors de l\'approbation des factures')
+    }
   }
 
-  const handleExportJSON = () => {
-    exportJSON.mutate()
+  const handleRemoveFromExport = async (invoiceId: string) => {
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('access_token='))
+        ?.split('=')[1]
+      
+      if (!token) {
+        toast.error('Token d\'authentification introuvable')
+        return
+      }
+
+      // Reset invoice status from approved back to reviewed/pending
+      const response = await fetch(`${apiUrl}/api/invoices/${invoiceId}/review-status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'reviewed' })
+      })
+
+      if (response.ok) {
+        // Refresh the invoice list
+        refetch()
+      } else {
+        toast.error('Erreur lors de la suppression de la file d\'export')
+      }
+    } catch (error) {
+      console.error('Error removing from export:', error)
+      toast.error('Erreur lors de la suppression de la file d\'export')
+    }
   }
 
-  const recentInvoices = invoices.slice(0, 5) // Show latest 5 invoices
+
   const pendingReviewCount = invoices.filter(invoice => 
     invoice.status === 'completed' && 
     invoice.processing_source === 'batch' &&
     (!invoice.review_status || invoice.review_status === 'pending_review')
   ).length
-  const reviewedCount = invoices.filter(invoice => 
-    invoice.review_status === 'approved' || invoice.review_status === 'reviewed'
-  ).length
+
 
   if (isLoading) {
     return (
@@ -92,92 +166,66 @@ function DashboardPage() {
         </div>
 
 
-        {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-5 mb-12">
-          <Card className="card-modern group hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Factures</CardTitle>
-              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                <FileText className="h-5 w-5 text-primary" />
+        {/* Compact Stats */}
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5 mb-6">
+          <Card className="card-modern p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg font-bold">{statsData?.total_invoices || 0}</div>
+                <div className="text-xs text-muted-foreground">Total</div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-1">{statsData?.total_invoices || 0}</div>
-              <p className="text-sm flex items-center gap-1 text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                {statsData?.completed_invoices || 0} traitées
-              </p>
-            </CardContent>
+              <FileText className="h-4 w-4 text-primary" />
+            </div>
           </Card>
 
-          <Card className="card-modern group hover:shadow-xl transition-all duration-300 border-orange-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">En Attente</CardTitle>
-              <div className="p-2 rounded-lg bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-                <Clock className="h-5 w-5 text-orange-600" />
+          <Card className="card-modern p-3 border-orange-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg font-bold text-orange-600">{pendingReviewCount}</div>
+                <div className="text-xs text-muted-foreground">En Attente</div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-1 text-orange-600">{pendingReviewCount}</div>
-              <p className="text-sm flex items-center gap-1 text-orange-600">
-                <Clock className="h-4 w-4" />
-                à réviser
-              </p>
-            </CardContent>
+              <Clock className="h-4 w-4 text-orange-600" />
+            </div>
           </Card>
           
-          <Card className="card-modern group hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Montant Total</CardTitle>
-              <div className="p-2 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-                <DollarSign className="h-5 w-5 text-green-600" />
+          <Card className="card-modern p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg font-bold">€{(statsData?.total_amount || 0).toLocaleString('fr-FR')}</div>
+                <div className="text-xs text-muted-foreground">Montant</div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-1">
-                €{(statsData?.total_amount || 0).toLocaleString('fr-FR')}
-              </div>
-              <p className="text-sm flex items-center gap-1 text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                Valeur extraite
-              </p>
-            </CardContent>
+              <DollarSign className="h-4 w-4 text-green-600" />
+            </div>
           </Card>
           
-          <Card className="card-modern group hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Temps de Traitement</CardTitle>
-              <div className="p-2 rounded-lg bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
-                <Clock className="h-5 w-5 text-orange-600" />
+          <Card className="card-modern p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg font-bold">
+                  {statsData?.average_processing_time 
+                    ? `${statsData.average_processing_time.toFixed(1)}s`
+                    : '~10s'
+                  }
+                </div>
+                <div className="text-xs text-muted-foreground">Moyenne</div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-1">
-                {invoices.length > 0 ? '8.2s' : '~10s'}
-              </div>
-              <p className="text-sm flex items-center gap-1 text-muted-foreground">
-                <Zap className="h-4 w-4" />
-                Moyenne par facture
-              </p>
-            </CardContent>
+              <Zap className="h-4 w-4 text-orange-600" />
+            </div>
           </Card>
           
-          <Card className="card-modern group hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Économies</CardTitle>
-              <div className="p-2 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-                <DollarSign className="h-5 w-5 text-purple-600" />
+          <Card className="card-modern p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg font-bold">
+                  {statsData?.time_savings_percentage 
+                    ? `${statsData.time_savings_percentage}%`
+                    : '~85%'
+                  }
+                </div>
+                <div className="text-xs text-muted-foreground">Économies</div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-1">
-                {invoices.length > 0 ? '85%' : '80-90%'}
-              </div>
-              <p className="text-sm flex items-center gap-1 text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                vs. traitement manuel complet
-              </p>
-            </CardContent>
+              <TrendingUp className="h-4 w-4 text-purple-600" />
+            </div>
           </Card>
         </div>
 
@@ -253,22 +301,29 @@ function DashboardPage() {
                         {pendingInvoices.length} facture{pendingInvoices.length > 1 ? 's' : ''} prête{pendingInvoices.length > 1 ? 's' : ''} à réviser avant export
                       </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 text-orange-700">
-                      <Clock className="h-4 w-4" />
-                      Action requise
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 text-orange-700">
+                        <Clock className="h-4 w-4" />
+                        Action requise
+                      </div>
+                      <Button
+                        onClick={handleApproveAll}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Approuver Tout
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {pendingInvoices.slice(0, 5).map((invoice, index) => (
+                    {pendingInvoices.slice(0, 5).map((invoice) => (
                       <ProgressiveInvoiceCard
                         key={invoice.id}
                         invoice={invoice}
-                        onUpdate={(updatedInvoice) => {
-                          const updatedInvoices = invoices.map(inv => 
-                            inv.id === updatedInvoice.id ? updatedInvoice : inv
-                          )
+                        onUpdate={() => {
                           refetch()
                         }}
                         expanded={false}
@@ -321,6 +376,8 @@ function DashboardPage() {
                         onExportComplete={(format, success) => {
                           if (success) {
                             console.log(`Bulk export ${format} completed successfully`)
+                            // Refresh invoice list to reflect cleared approved status
+                            refetch()
                           }
                         }}
                       />
@@ -329,18 +386,24 @@ function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {approvedInvoices.slice(0, 3).map((invoice, index) => (
-                      <ProgressiveInvoiceCard
-                        key={invoice.id}
-                        invoice={invoice}
-                        onUpdate={(updatedInvoice) => {
-                          const updatedInvoices = invoices.map(inv => 
-                            inv.id === updatedInvoice.id ? updatedInvoice : inv
-                          )
-                          refetch()
-                        }}
-                        expanded={false}
-                      />
+                    {approvedInvoices.slice(0, 3).map((invoice) => (
+                      <div key={invoice.id} className="relative">
+                        <ProgressiveInvoiceCard
+                          invoice={invoice}
+                          onUpdate={() => {
+                            refetch()
+                          }}
+                          expanded={false}
+                          showReviewButton={false}
+                        />
+                        <button
+                          onClick={() => handleRemoveFromExport(invoice.id)}
+                          className="absolute top-2 right-2 p-1 rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors"
+                          title="Retirer de la file d'export"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                   
@@ -361,106 +424,13 @@ function DashboardPage() {
           return null
         })()}
 
-        {/* Recent Invoices Section */}
-        {invoices.length > 0 && (
-          <Card className="card-modern mb-12">
-            <CardHeader className="pb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl mb-2">Factures Récentes</CardTitle>
-                  <CardDescription className="text-lg">
-                    Toutes vos factures traitées avec validation SIRET
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleExportCSV}
-                    disabled={exportCSV.isPending}
-                    className="flex items-center gap-2"
-                  >
-                    {exportCSV.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                    CSV
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleExportJSON}
-                    disabled={exportJSON.isPending}
-                    className="flex items-center gap-2"
-                  >
-                    {exportJSON.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4" />
-                    )}
-                    JSON
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentInvoices.map((invoice, index) => (
-                  <ProgressiveInvoiceCard
-                    key={invoice.id}
-                    invoice={invoice}
-                    onUpdate={(updatedInvoice) => {
-                      // Update the invoice in the list
-                      const updatedInvoices = invoices.map(inv => 
-                        inv.id === updatedInvoice.id ? updatedInvoice : inv
-                      )
-                      // This would typically trigger a refetch or state update
-                      refetch()
-                    }}
-                    expanded={index === 0} // Expand the first (most recent) invoice by default
-                    showReviewButton={false} // Hide review button in recent invoices section
-                  />
-                ))}
-              </div>
-              
-              {invoices.length > 5 && (
-                <div className="mt-6 text-center">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Affichage de {recentInvoices.length} sur {invoices.length} factures
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Voir Toutes les Factures
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Features Info */}
-        <Card className="card-modern text-center py-16">
-          <CardContent>
-            <div className="mx-auto w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-              <Bot className="h-12 w-12 text-primary" />
-            </div>
-            <h3 className="text-2xl font-semibold mb-4">Traitement Intelligent par Lots</h3>
-            <p className="text-lg text-muted-foreground mb-8 max-w-md mx-auto">
-              Téléversez plusieurs factures, sélectionnez votre format d'export, et laissez le système faire le travail. 
-              Vos données sont automatiquement exportées une fois le traitement terminé.
-            </p>
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Download className="h-5 w-5 text-primary" />
-                Téléchargement automatique
-              </div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                7 formats d'export
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
+        {/* Small footer info */}
+        <div className="text-center text-xs text-muted-foreground mt-6">
+          <Bot className="h-4 w-4 text-primary inline mr-2" />
+          Traitement automatique • 7 formats d'export disponibles
+        </div>
       </main>
     </div>
   )

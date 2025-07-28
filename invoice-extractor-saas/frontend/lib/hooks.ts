@@ -117,6 +117,30 @@ export function useExportInvoiceJSON() {
 export function useDashboardStats() {
   const { data: invoices = [] } = useInvoices()
   
+  // Calculate real processing times for completed invoices
+  const completedInvoices = invoices.filter(inv => 
+    inv.status === 'completed' && 
+    inv.processing_started_at && 
+    inv.processing_completed_at
+  )
+  
+  const processingTimes = completedInvoices.map(inv => {
+    const startTime = new Date(inv.processing_started_at).getTime()
+    const endTime = new Date(inv.processing_completed_at).getTime()
+    return (endTime - startTime) / 1000 // Convert to seconds
+  })
+  
+  const averageProcessingTime = processingTimes.length > 0
+    ? processingTimes.reduce((sum, time) => sum + time, 0) / processingTimes.length
+    : null
+  
+  // Calculate time-based savings percentage (compared to manual processing)
+  // Assume manual processing takes ~300 seconds (5 minutes) per invoice
+  const manualProcessingTime = 300
+  const savingsPercentage = averageProcessingTime 
+    ? Math.max(0, Math.min(95, Math.round(((manualProcessingTime - averageProcessingTime) / manualProcessingTime) * 100)))
+    : null
+  
   const stats = {
     total_invoices: invoices.length,
     // Use total_ttc for French invoices, fallback to total
@@ -127,6 +151,8 @@ export function useDashboardStats() {
     completed_invoices: invoices.filter(inv => inv.status === 'completed').length,
     processing_invoices: invoices.filter(inv => inv.status === 'processing').length,
     failed_invoices: invoices.filter(inv => inv.status === 'failed').length,
+    average_processing_time: averageProcessingTime,
+    time_savings_percentage: savingsPercentage
   }
 
   return { data: stats }

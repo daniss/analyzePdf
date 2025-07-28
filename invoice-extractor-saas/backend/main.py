@@ -9,7 +9,7 @@ import uvicorn
 from api import auth, invoices, export_routes, gdpr_rights, batch_processing, admin_costs, pcg_routes, validation_reports, auto_correction_routes, siret_validation_routes
 from core.config import settings
 from core.exceptions import (
-    InvoiceAIException, invoiceai_exception_handler,
+    ComptaFlowException, comptaflow_exception_handler,
     http_exception_handler, validation_exception_handler,
     sqlalchemy_exception_handler, general_exception_handler
 )
@@ -18,15 +18,15 @@ from core.exceptions import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print("Starting up InvoiceAI API...")
+    print("Starting up ComptaFlow API...")
     yield
     # Shutdown
     print("Shutting down...")
 
 
 app = FastAPI(
-    title="InvoiceAI API",
-    description="AI-powered PDF invoice data extraction API",
+    title="ComptaFlow API",
+    description="Plateforme intelligente d'extraction de données de factures pour experts-comptables",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -38,7 +38,7 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:3001", 
         "http://127.0.0.1:3000",
-        "https://invoiceai.com"
+        "https://comptaflow.com"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
@@ -61,7 +61,7 @@ app.include_router(auto_correction_routes.router, tags=["auto-correction"])
 app.include_router(siret_validation_routes.router, prefix="/api/siret", tags=["siret-validation"])
 
 # Register exception handlers
-app.add_exception_handler(InvoiceAIException, invoiceai_exception_handler)
+app.add_exception_handler(ComptaFlowException, comptaflow_exception_handler)
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
@@ -70,7 +70,7 @@ app.add_exception_handler(Exception, general_exception_handler)
 
 @app.get("/")
 async def root():
-    return {"message": "InvoiceAI API", "version": "1.0.0"}
+    return {"message": "ComptaFlow API", "version": "1.0.0"}
 
 
 @app.get("/health")

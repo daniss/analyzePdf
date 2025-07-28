@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-InvoiceAI is an AI-powered PDF invoice data extractor SaaS that uses Claude 4 Opus vision API exclusively for both OCR and intelligent data extraction. The project consists of a Next.js frontend and FastAPI backend with PostgreSQL/Redis for data storage.
+ComptaFlow est une plateforme SaaS intelligente d'extraction de données de factures PDF conçue spécifiquement pour les experts-comptables français. Elle utilise l'API Claude 4 Opus pour l'OCR et l'extraction intelligente de données. Le projet se compose d'un frontend Next.js et d'un backend FastAPI avec PostgreSQL/Redis pour le stockage des données.
 
 ## Key Architecture Points
 

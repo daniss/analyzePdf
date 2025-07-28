@@ -487,3 +487,287 @@ async def link_invoice_to_data_subject(
             risk_level="medium"
         )
         raise
+
+
+async def reset_invoice_review_status(
+    db: AsyncSession,
+    invoice_id: uuid.UUID,
+    user_id: uuid.UUID
+) -> bool:
+    """Mark invoice as exported after bulk export"""
+    try:
+        # Get the invoice first to verify ownership
+        result = await db.execute(
+            select(Invoice).where(
+                and_(
+                    Invoice.id == invoice_id,
+                    Invoice.data_controller_id == user_id
+                )
+            )
+        )
+        invoice = result.scalar_one_or_none()
+        
+        if not invoice:
+            return False
+        
+        # Set status to exported instead of pending review
+        await db.execute(
+            update(Invoice)
+            .where(Invoice.id == invoice_id)
+            .values(review_status="exported")
+        )
+        
+        # Log the status change
+        await log_audit_event(
+            db=db,
+            event_type=AuditEventType.DATA_MODIFICATION,
+            event_description=f"Marked invoice as exported after bulk export",
+            user_id=user_id,
+            invoice_id=invoice_id,
+            system_component="export_system",
+            risk_level="low"
+        )
+        
+        return True
+        
+    except Exception as e:
+        await log_audit_event(
+            db=db,
+            event_type=AuditEventType.DATA_MODIFICATION,
+            event_description=f"Failed to reset invoice review status: {str(e)}",
+            user_id=user_id,
+            invoice_id=invoice_id,
+            system_component="export_system",
+            risk_level="medium"
+        )
+        return False
+
+
+# ==========================================
+# DUPLICATE DETECTION FUNCTIONS
+# ==========================================
+
+async def find_duplicate_by_hash(
+    db: AsyncSession,
+    file_hash: str,
+    user_id: uuid.UUID
+) -> Optional[Invoice]:
+    """
+    Find existing invoice with the same file hash for duplicate detection
+    
+    Args:
+        db: Database session
+        file_hash: SHA-256 hash of the file content
+        user_id: ID of the user to check duplicates for
+        
+    Returns:
+        Invoice if duplicate found, None otherwise
+    """
+    try:
+        query = select(Invoice).where(
+            and_(
+                Invoice.file_hash == file_hash,
+                Invoice.data_controller_id == user_id,
+                Invoice.processing_status != "deleted"
+            )
+        ).order_by(Invoice.created_at.desc())
+        
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+        
+    except Exception as e:
+        await log_audit_event(
+            db=db,
+            event_type=AuditEventType.DATA_ACCESS,
+            event_description=f"Error checking file hash duplicate: {str(e)}",
+            user_id=user_id,
+            system_component="duplicate_detector",
+            risk_level="low"
+        )
+        return None
+
+
+async def find_duplicates_by_invoice_key(
+    db: AsyncSession,
+    invoice_number: str,
+    supplier_siret: str,
+    user_id: uuid.UUID,
+    exclude_invoice_id: Optional[uuid.UUID] = None
+) -> List[Invoice]:
+    """
+    Find existing invoices with the same business key (invoice_number + supplier_siret)
+    
+    Args:
+        db: Database session
+        invoice_number: Invoice number from extracted data
+        supplier_siret: Supplier SIRET number
+        user_id: ID of the user to check duplicates for
+        exclude_invoice_id: Invoice ID to exclude from search (for updates)
+        
+    Returns:
+        List of invoices with matching business key
+    """
+    try:
+        query = select(Invoice).where(
+            and_(
+                Invoice.data_controller_id == user_id,
+                Invoice.processing_status.in_(["completed", "processing"]),
+                Invoice.extracted_data_encrypted.isnot(None)
+            )
+        )
+        
+        if exclude_invoice_id:
+            query = query.where(Invoice.id != exclude_invoice_id)
+        
+        query = query.order_by(Invoice.created_at.desc())
+        
+        result = await db.execute(query)
+        all_invoices = result.scalars().all()
+        
+        # Filter by business key in extracted data
+        matching_invoices = []
+        
+        for invoice in all_invoices:
+            try:
+                # Get decrypted extracted data
+                extracted_data = await get_extracted_data(db, invoice.id, user_id)
+                
+                if extracted_data:
+                    existing_invoice_number = extracted_data.invoice_number
+                    existing_supplier_siret = None
+                    
+                    if extracted_data.vendor and extracted_data.vendor.siret_number:
+                        existing_supplier_siret = extracted_data.vendor.siret_number
+                    
+                    # Match business key
+                    if (existing_invoice_number == invoice_number and 
+                        existing_supplier_siret == supplier_siret):
+                        matching_invoices.append(invoice)
+                        
+            except Exception as e:
+                # Skip invoices that can't be decrypted
+                continue
+        
+        return matching_invoices
+        
+    except Exception as e:
+        await log_audit_event(
+            db=db,
+            event_type=AuditEventType.DATA_ACCESS,
+            event_description=f"Error checking invoice key duplicates: {str(e)}",
+            user_id=user_id,
+            system_component="duplicate_detector",
+            risk_level="low"
+        )
+        return []
+
+
+async def get_user_invoice_stats(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    days_back: int = 30
+) -> Dict[str, Any]:
+    """
+    Get invoice processing statistics for duplicate analysis
+    
+    Args:
+        db: Database session
+        user_id: ID of the user
+        days_back: Number of days to look back for statistics
+        
+    Returns:
+        Dictionary with processing statistics
+    """
+    try:
+        cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+        
+        # Get basic counts
+        total_query = select(Invoice).where(
+            and_(
+                Invoice.data_controller_id == user_id,
+                Invoice.created_at >= cutoff_date,
+                Invoice.processing_status != "deleted"
+            )
+        )
+        
+        result = await db.execute(total_query)
+        recent_invoices = result.scalars().all()
+        
+        stats = {
+            "total_invoices": len(recent_invoices),
+            "completed_invoices": len([i for i in recent_invoices if i.processing_status == "completed"]),
+            "processing_invoices": len([i for i in recent_invoices if i.processing_status == "processing"]),
+            "failed_invoices": len([i for i in recent_invoices if i.processing_status == "failed"]),
+            "unique_file_hashes": len(set(i.file_hash for i in recent_invoices)),
+            "days_analyzed": days_back,
+            "oldest_invoice": min(recent_invoices, key=lambda x: x.created_at).created_at if recent_invoices else None,
+            "newest_invoice": max(recent_invoices, key=lambda x: x.created_at).created_at if recent_invoices else None
+        }
+        
+        # Calculate potential file duplicates
+        hash_counts = {}
+        for invoice in recent_invoices:
+            hash_counts[invoice.file_hash] = hash_counts.get(invoice.file_hash, 0) + 1
+        
+        stats["potential_file_duplicates"] = sum(1 for count in hash_counts.values() if count > 1)
+        
+        return stats
+        
+    except Exception as e:
+        await log_audit_event(
+            db=db,
+            event_type=AuditEventType.DATA_ACCESS,
+            event_description=f"Error getting user invoice stats: {str(e)}",
+            user_id=user_id,
+            system_component="duplicate_detector",
+            risk_level="low"
+        )
+        return {
+            "total_invoices": 0,
+            "error": str(e)
+        }
+
+
+async def get_invoice_business_key(
+    db: AsyncSession,
+    invoice_id: uuid.UUID,
+    user_id: uuid.UUID
+) -> Optional[str]:
+    """
+    Extract business key (invoice_number + supplier_siret) from an invoice
+    
+    Args:
+        db: Database session
+        invoice_id: ID of the invoice
+        user_id: ID of the user (for access control)
+        
+    Returns:
+        Business key string or None if not available
+    """
+    try:
+        extracted_data = await get_extracted_data(db, invoice_id, user_id)
+        
+        if not extracted_data:
+            return None
+        
+        invoice_number = extracted_data.invoice_number
+        supplier_siret = None
+        
+        if extracted_data.vendor and extracted_data.vendor.siret_number:
+            supplier_siret = extracted_data.vendor.siret_number
+        
+        if invoice_number and supplier_siret:
+            return f"{supplier_siret}_{invoice_number}"
+        
+        return None
+        
+    except Exception as e:
+        await log_audit_event(
+            db=db,
+            event_type=AuditEventType.DATA_ACCESS,
+            event_description=f"Error extracting business key for invoice {invoice_id}: {str(e)}",
+            user_id=user_id,
+            system_component="duplicate_detector",
+            risk_level="low"
+        )
+        return None

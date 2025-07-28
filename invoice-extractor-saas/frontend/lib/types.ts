@@ -171,6 +171,8 @@ export interface Invoice {
   status: InvoiceStatus
   created_at: string
   updated_at?: string
+  processing_started_at?: string
+  processing_completed_at?: string
   data?: InvoiceData
   confidence_data?: {
     invoice_number?: FieldConfidence

@@ -5,7 +5,7 @@ import os
 
 class Settings(BaseSettings):
     # App settings
-    APP_NAME: str = "InvoiceAI"
+    APP_NAME: str = "ComptaFlow"
     VERSION: str = "1.0.0"
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
     
@@ -31,9 +31,9 @@ class Settings(BaseSettings):
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
     ALLOWED_FILE_TYPES: List[str] = ["application/pdf", "image/jpeg", "image/png"]
     
-    # Storage
-    STORAGE_BACKEND: str = "local"  # "local" or "s3"
-    LOCAL_STORAGE_PATH: str = "./uploads"
+    # Storage (GDPR-compliant: no local file storage)
+    STORAGE_BACKEND: str = "memory"  # Files processed in memory only
+    # LOCAL_STORAGE_PATH removed - GDPR compliance (no unencrypted files on disk)
     AWS_BUCKET_NAME: str = os.getenv("AWS_BUCKET_NAME", "")
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")

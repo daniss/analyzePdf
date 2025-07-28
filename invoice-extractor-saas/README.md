@@ -1,8 +1,8 @@
-# InvoiceAI - AI-Powered PDF Invoice Data Extractor SaaS
+# ComptaFlow - Plateforme Intelligente d'Extraction de Données de Factures
 
-Extract structured data from PDF invoices using cutting-edge AI technology. Built with Next.js, FastAPI, and Claude AI for 99% accuracy in invoice processing.
+Extrayez automatiquement les données structurées de vos factures PDF grâce à l'intelligence artificielle. Conçu spécifiquement pour les experts-comptables français avec Next.js, FastAPI et une précision de 99%.
 
-![InvoiceAI](https://img.shields.io/badge/InvoiceAI-v1.0.0-blue)
+![ComptaFlow](https://img.shields.io/badge/ComptaFlow-v1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Python](https://img.shields.io/badge/python-3.11+-blue)
 ![TypeScript](https://img.shields.io/badge/typescript-5.0+-blue)

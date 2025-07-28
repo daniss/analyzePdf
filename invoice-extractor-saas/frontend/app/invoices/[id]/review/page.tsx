@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, FileText, Bot, CheckCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,10 +11,12 @@ import { useAuth, withAuth } from '@/lib/auth-context'
 import { DataReviewTable } from '@/components/invoice/data-review-table'
 import { apiClient } from '@/lib/api'
 import { Invoice } from '@/lib/types'
+import toast from 'react-hot-toast'
 
 function InvoiceReviewPage() {
   const params = useParams()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { user } = useAuth()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -42,6 +45,14 @@ function InvoiceReviewPage() {
 
   const handleInvoiceUpdate = (updatedInvoice: Invoice) => {
     setInvoice(updatedInvoice)
+    // Also invalidate the invoices cache so dashboard shows updated data
+    queryClient.invalidateQueries({ queryKey: ['invoices'] })
+  }
+
+  const navigateToDashboard = async () => {
+    // Invalidate invoices cache to ensure fresh data on dashboard
+    await queryClient.invalidateQueries({ queryKey: ['invoices'] })
+    router.push('/dashboard')
   }
 
   const handleApprove = async () => {
@@ -49,10 +60,17 @@ function InvoiceReviewPage() {
       // Update invoice status to approved
       await apiClient.updateInvoiceReviewStatus(invoiceId, 'approved')
       
+      // Invalidate invoices cache to refresh dashboard data
+      await queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      
+      // Show success message
+      toast.success('Facture approuvée avec succès')
+      
       // Navigate back to dashboard
-      router.push('/dashboard')
+      navigateToDashboard()
     } catch (error) {
       console.error('Failed to approve invoice:', error)
+      toast.error('Erreur lors de l\'approbation de la facture')
     }
   }
 
@@ -61,10 +79,17 @@ function InvoiceReviewPage() {
       // Update invoice status to rejected
       await apiClient.updateInvoiceReviewStatus(invoiceId, 'rejected')
       
+      // Invalidate invoices cache to refresh dashboard data
+      await queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      
+      // Show success message
+      toast.success('Facture rejetée')
+      
       // Navigate back to dashboard
-      router.push('/dashboard')
+      navigateToDashboard()
     } catch (error) {
       console.error('Failed to reject invoice:', error)
+      toast.error('Erreur lors du rejet de la facture')
     }
   }
 
@@ -97,7 +122,7 @@ function InvoiceReviewPage() {
                 <p className="text-muted-foreground mb-4">
                   {error || 'Facture introuvable'}
                 </p>
-                <Button onClick={() => router.push('/dashboard')} variant="outline">
+                <Button onClick={() => navigateToDashboard()} variant="outline">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Retour au Tableau de Bord
                 </Button>
@@ -123,7 +148,7 @@ function InvoiceReviewPage() {
                 <p className="text-muted-foreground mb-4">
                   Cette facture est encore en cours de traitement. Veuillez patienter.
                 </p>
-                <Button onClick={() => router.push('/dashboard')} variant="outline">
+                <Button onClick={() => navigateToDashboard()} variant="outline">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Retour au Tableau de Bord
                 </Button>
@@ -144,7 +169,7 @@ function InvoiceReviewPage() {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => router.push('/dashboard')}
+              onClick={() => navigateToDashboard()}
               className="mr-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />

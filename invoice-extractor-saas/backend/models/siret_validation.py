@@ -193,18 +193,18 @@ class SIRETValidationSettings(Base):
 # Helper functions for determining export status and risk
 
 def determine_export_status(validation_status: SIRETValidationStatus) -> ExportBlockingLevel:
-    """Determine export blocking level based on validation status"""
+    """Determine export blocking level based on validation status - allows export with warnings for invalid SIRET"""
     status_mapping = {
         SIRETValidationStatus.VALID: ExportBlockingLevel.AUTO_EXPORT_ALLOWED,
-        SIRETValidationStatus.NOT_FOUND: ExportBlockingLevel.BLOCKED_MANUAL_OVERRIDE_POSSIBLE,
-        SIRETValidationStatus.INACTIVE: ExportBlockingLevel.WARNING_CONFIRMATION_REQUIRED,
+        SIRETValidationStatus.NOT_FOUND: ExportBlockingLevel.WARNING_EXPORT_ALLOWED,  # Changed: Allow export with warning
+        SIRETValidationStatus.INACTIVE: ExportBlockingLevel.WARNING_EXPORT_ALLOWED,   # Changed: Allow export with warning
         SIRETValidationStatus.NAME_MISMATCH: ExportBlockingLevel.WARNING_EXPORT_ALLOWED,
-        SIRETValidationStatus.MALFORMED: ExportBlockingLevel.BLOCKED_CORRECTION_REQUIRED,
+        SIRETValidationStatus.MALFORMED: ExportBlockingLevel.WARNING_EXPORT_ALLOWED,  # Changed: Allow export with warning
         SIRETValidationStatus.FOREIGN_SUPPLIER: ExportBlockingLevel.WARNING_EXPORT_ALLOWED,
         SIRETValidationStatus.GOVERNMENT_ENTITY: ExportBlockingLevel.WARNING_EXPORT_ALLOWED,
-        SIRETValidationStatus.ERROR: ExportBlockingLevel.BLOCKED_MANUAL_OVERRIDE_POSSIBLE,
+        SIRETValidationStatus.ERROR: ExportBlockingLevel.WARNING_EXPORT_ALLOWED,      # Changed: Allow export with warning
     }
-    return status_mapping.get(validation_status, ExportBlockingLevel.BLOCKED_CORRECTION_REQUIRED)
+    return status_mapping.get(validation_status, ExportBlockingLevel.WARNING_EXPORT_ALLOWED)
 
 
 def assess_compliance_risk(validation_status: SIRETValidationStatus, user_action: Optional[UserOverrideAction] = None) -> ComplianceRisk:

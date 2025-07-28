@@ -1,5 +1,5 @@
 """
-Custom exceptions and error handling for InvoiceAI
+Custom exceptions and error handling for ComptaFlow
 Provides GDPR-compliant error handling with proper audit logging
 """
 
@@ -19,72 +19,72 @@ from models.gdpr_models import AuditEventType
 logger = logging.getLogger(__name__)
 
 
-class InvoiceAIException(Exception):
-    """Base exception for InvoiceAI application"""
+class ComptaFlowException(Exception):
+    """Base exception for ComptaFlow application"""
     def __init__(self, message: str, error_code: str = None, details: Dict[str, Any] = None):
         self.message = message
-        self.error_code = error_code or "INVOICEAI_ERROR"
+        self.error_code = error_code or "COMPTAFLOW_ERROR"
         self.details = details or {}
         self.error_id = str(uuid.uuid4())
         super().__init__(self.message)
 
 
-class AuthenticationError(InvoiceAIException):
+class AuthenticationError(ComptaFlowException):
     """Authentication related errors"""
     def __init__(self, message: str = "Authentication failed", details: Dict[str, Any] = None):
         super().__init__(message, "AUTH_ERROR", details)
 
 
-class AuthorizationError(InvoiceAIException):
+class AuthorizationError(ComptaFlowException):
     """Authorization related errors"""
     def __init__(self, message: str = "Access denied", details: Dict[str, Any] = None):
         super().__init__(message, "AUTHZ_ERROR", details)
 
 
-class ValidationError(InvoiceAIException):
+class ValidationError(ComptaFlowException):
     """Data validation errors"""
     def __init__(self, message: str = "Validation failed", details: Dict[str, Any] = None):
         super().__init__(message, "VALIDATION_ERROR", details)
 
 
-class ProcessingError(InvoiceAIException):
+class ProcessingError(ComptaFlowException):
     """Invoice processing errors"""
     def __init__(self, message: str = "Processing failed", details: Dict[str, Any] = None):
         super().__init__(message, "PROCESSING_ERROR", details)
 
 
-class GDPRComplianceError(InvoiceAIException):
+class GDPRComplianceError(ComptaFlowException):
     """GDPR compliance related errors"""
     def __init__(self, message: str = "GDPR compliance violation", details: Dict[str, Any] = None):
         super().__init__(message, "GDPR_ERROR", details)
 
 
-class DatabaseError(InvoiceAIException):
+class DatabaseError(ComptaFlowException):
     """Database operation errors"""
     def __init__(self, message: str = "Database operation failed", details: Dict[str, Any] = None):
         super().__init__(message, "DATABASE_ERROR", details)
 
 
-class ExternalServiceError(InvoiceAIException):
+class ExternalServiceError(ComptaFlowException):
     """External service integration errors"""
     def __init__(self, message: str = "External service error", details: Dict[str, Any] = None):
         super().__init__(message, "EXTERNAL_SERVICE_ERROR", details)
 
 
-class FileProcessingError(InvoiceAIException):
+class FileProcessingError(ComptaFlowException):
     """File processing errors"""
     def __init__(self, message: str = "File processing failed", details: Dict[str, Any] = None):
         super().__init__(message, "FILE_PROCESSING_ERROR", details)
 
 
-class RateLimitError(InvoiceAIException):
+class RateLimitError(ComptaFlowException):
     """Rate limiting errors"""
     def __init__(self, message: str = "Rate limit exceeded", details: Dict[str, Any] = None):
         super().__init__(message, "RATE_LIMIT_ERROR", details)
 
 
 def create_error_response(
-    error: InvoiceAIException,
+    error: ComptaFlowException,
     status_code: int = 500,
     include_details: bool = False
 ) -> Dict[str, Any]:
@@ -159,8 +159,8 @@ async def log_error_event(
 
 
 # Exception handlers for FastAPI
-async def invoiceai_exception_handler(request: Request, exc: InvoiceAIException) -> JSONResponse:
-    """Handle custom InvoiceAI exceptions"""
+async def comptaflow_exception_handler(request: Request, exc: ComptaFlowException) -> JSONResponse:
+    """Handle custom ComptaFlow exceptions"""
     
     # Log the error
     await log_error_event(exc, request, context={"endpoint": str(request.url)})
@@ -193,7 +193,7 @@ async def invoiceai_exception_handler(request: Request, exc: InvoiceAIException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
     """Handle standard HTTP exceptions"""
     
-    error = InvoiceAIException(
+    error = ComptaFlowException(
         message=exc.detail if hasattr(exc, 'detail') else "HTTP error occurred",
         error_code="HTTP_ERROR"
     )
@@ -264,7 +264,7 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unexpected exceptions"""
     
-    general_error = InvoiceAIException(
+    general_error = ComptaFlowException(
         message="An unexpected error occurred",
         error_code="INTERNAL_ERROR",
         details={"exception_type": type(exc).__name__}
@@ -282,8 +282,8 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 # Utility functions for error handling in routes
-def handle_database_error(operation: str, error: Exception) -> InvoiceAIException:
-    """Convert database errors to InvoiceAI exceptions"""
+def handle_database_error(operation: str, error: Exception) -> ComptaFlowException:
+    """Convert database errors to ComptaFlow exceptions"""
     if isinstance(error, IntegrityError):
         return DatabaseError(
             f"Database integrity error during {operation}",
@@ -295,7 +295,7 @@ def handle_database_error(operation: str, error: Exception) -> InvoiceAIExceptio
             details={"operation": operation}
         )
     else:
-        return InvoiceAIException(
+        return ComptaFlowException(
             f"Unexpected error during {operation}",
             "OPERATION_ERROR",
             details={"operation": operation}

@@ -351,10 +351,10 @@ class EnhancedSageExporter:
         due_date = self._format_sage_date(invoice.due_date) if invoice.due_date else entry_date
         piece_number = invoice.invoice_number or f"FACT{self._sequence_counter}"
         
-        # 1. SUPPLIER CREDIT ENTRY (Class 4 - Tiers)
+        # 1. SUPPLIER CREDIT ENTRY (Class 4 - Tiers) with complete French business info
         supplier_account = self.pcg.FOURNISSEURS
         supplier_auxiliary = self._generate_supplier_auxiliary_account(invoice.vendor)
-        supplier_name = self._clean_sage_text(invoice.vendor.name) if invoice.vendor else "Fournisseur"
+        supplier_name = self._generate_supplier_auxiliary_name(invoice.vendor)
         total_ttc = invoice.total_ttc or invoice.total or 0
         
         supplier_entry = self.AccountingEntry(
@@ -365,7 +365,7 @@ class EnhancedSageExporter:
             auxiliary_name=supplier_name,
             debit_amount=0.0,
             credit_amount=total_ttc,
-            description=f"Facture {invoice.invoice_number or 'sans numéro'}",
+            description=self._generate_enhanced_entry_description(invoice, "supplier"),
             piece_number=piece_number,
             entry_date=entry_date,
             due_date=due_date,
@@ -374,7 +374,7 @@ class EnhancedSageExporter:
         entries.append(supplier_entry)
         self._sequence_counter += 1
         
-        # 2. EXPENSE DEBIT ENTRIES (Class 6 - Charges) with intelligent PCG mapping
+        # 2. EXPENSE DEBIT ENTRIES (Class 6 - Charges) with intelligent PCG mapping and complete line item info
         for i, item in enumerate(invoice.line_items):
             expense_account, expense_name, confidence = self._determine_pcg_expense_account(item.description, item)
             item_total_ht = item.unit_price * item.quantity
@@ -382,6 +382,19 @@ class EnhancedSageExporter:
             # Log mapping confidence for monitoring
             if confidence < 0.5:
                 logger.warning(f"Low confidence PCG mapping ({confidence:.2f}) for: {item.description[:30]}")
+            
+            # Enhanced description with complete line item information (fix truncation)
+            desc_parts = []
+            if item.description:
+                # Keep full description, clean it properly for Sage
+                clean_desc = item.description.replace(';', ' ').replace('|', ' ').strip()
+                desc_parts.append(clean_desc)
+            
+            # Add quantity for detailed tracking (no extra characters)
+            if item.quantity:
+                desc_parts.append(f"Qté:{item.quantity:.1f}".replace('.', ','))
+            
+            enhanced_description = " ".join(desc_parts)
             
             expense_entry = self.AccountingEntry(
                 journal_code=FrenchJournalCode.ACHATS.value,
@@ -391,7 +404,7 @@ class EnhancedSageExporter:
                 auxiliary_name="",
                 debit_amount=item_total_ht,
                 credit_amount=0.0,
-                description=self._clean_sage_text(item.description)[:30],
+                description=self._clean_sage_text(enhanced_description),
                 piece_number=piece_number,
                 entry_date=entry_date,
                 sequence_number=self._sequence_counter
@@ -399,11 +412,54 @@ class EnhancedSageExporter:
             entries.append(expense_entry)
             self._sequence_counter += 1
         
-        # 3. TVA DEBIT ENTRIES (Class 445 - TVA déductible)
+        # 2b. ADDITIONAL CHARGES ENTRIES (new fields)
+        additional_charges = [
+            ("shipping_cost", "Frais de port"),
+            ("packaging_cost", "Frais d'emballage"),
+            ("other_charges", "Autres frais")
+        ]
+        
+        for charge_field, charge_description in additional_charges:
+            charge_amount = getattr(invoice, charge_field, 0) or 0
+            if charge_amount > 0:
+                # Use transport account for shipping, general services for others
+                if charge_field == "shipping_cost":
+                    charge_account = self.pcg.TRANSPORTS_BIENS
+                    charge_account_name = "Transports de biens"
+                else:
+                    charge_account = self.pcg.SERVICES_EXTERIEURS
+                    charge_account_name = "Services extérieurs"
+                
+                charge_entry = self.AccountingEntry(
+                    journal_code=FrenchJournalCode.ACHATS.value,
+                    account_number=charge_account,
+                    account_name=charge_account_name,
+                    auxiliary_account="",
+                    auxiliary_name="",
+                    debit_amount=charge_amount,
+                    credit_amount=0.0,
+                    description=self._clean_sage_text(f"{charge_description} - {invoice.invoice_number}"),
+                    piece_number=piece_number,
+                    entry_date=entry_date,
+                    sequence_number=self._sequence_counter
+                )
+                entries.append(charge_entry)
+                self._sequence_counter += 1
+        
+        # 3. TVA DEBIT ENTRIES (Class 445 - TVA déductible) with complete breakdown information
         for tva_item in invoice.tva_breakdown:
             if tva_item.tva_amount > 0:
                 tva_account = self._get_pcg_tva_deductible_account(tva_item.rate)
                 tva_name = self._get_pcg_account_name(tva_account)
+                
+                # Clean TVA description with base amount
+                tva_desc_parts = [f"TVA {tva_item.rate:.1f}% déductible".replace('.', ',')]
+                
+                # Add base amount for auditing
+                if tva_item.taxable_amount:
+                    tva_desc_parts.append(f"Base:{tva_item.taxable_amount:.2f}".replace('.', ','))
+                
+                enhanced_tva_description = " ".join(tva_desc_parts)
                 
                 tva_entry = self.AccountingEntry(
                     journal_code=FrenchJournalCode.ACHATS.value,
@@ -413,7 +469,7 @@ class EnhancedSageExporter:
                     auxiliary_name="",
                     debit_amount=tva_item.tva_amount,
                     credit_amount=0.0,
-                    description=f"TVA {tva_item.rate}% déductible",
+                    description=self._clean_sage_text(enhanced_tva_description),
                     piece_number=piece_number,
                     entry_date=entry_date,
                     sequence_number=self._sequence_counter
@@ -550,7 +606,7 @@ class EnhancedSageExporter:
         return account_names.get(account_code, "Compte")
     
     def _generate_supplier_auxiliary_account(self, vendor: Optional[FrenchBusinessInfo]) -> str:
-        """Generate auxiliary account code for supplier"""
+        """Generate auxiliary account code for supplier with complete French business info"""
         if not vendor:
             return "FOURN001"
         
@@ -569,19 +625,96 @@ class EnhancedSageExporter:
         
         return "FOURN001"
     
+    def _generate_supplier_auxiliary_name(self, vendor: Optional[FrenchBusinessInfo]) -> str:
+        """Generate enhanced auxiliary account name with complete French business information"""
+        if not vendor:
+            return "Fournisseur"
+        
+        # Start with company name
+        name_parts = [vendor.name] if vendor.name else ["Fournisseur"]
+        
+        # Add legal form if available
+        if vendor.legal_form:
+            name_parts.append(f"({vendor.legal_form})")
+        
+        # Add city for identification
+        if vendor.city:
+            name_parts.append(f"- {vendor.city}")
+        
+        # Add SIREN for French compliance
+        if vendor.siren_number:
+            name_parts.append(f"SIREN:{vendor.siren_number}")
+        
+        # Join parts and clean for Sage
+        full_name = " ".join(name_parts)
+        return self._clean_sage_text(full_name)
+    
+    def _generate_enhanced_entry_description(self, invoice: InvoiceData, entry_type: str = "standard") -> str:
+        """Generate enhanced entry descriptions with complete French business information and new fields"""
+        base_desc = f"Facture {invoice.invoice_number or 'sans numéro'}"
+        
+        # Add vendor name for supplier entries (not truncated SIRET info)
+        if entry_type == "supplier" and invoice.vendor and invoice.vendor.name:
+            # Use vendor name instead of SIRET info for readability
+            vendor_name = invoice.vendor.name[:15]  # Reasonable truncation for space
+            base_desc += f" {vendor_name}"
+        
+        
+        return self._clean_sage_text(base_desc)
+    
     # ==========================================
     # SAGE 100 PNM FORMATTING METHODS
     # ==========================================
     
     def _format_pnm_header(self, invoice: InvoiceData, entry_count: int) -> str:
-        """Format Sage 100 PNM file header"""
-        return f"SAGE;100;PNM;{self._format_sage_date(datetime.now().date())};{entry_count};INVOICE_AI_EXPORT"
+        """Format enhanced Sage 100 PNM file header with French business compliance"""
+        # Enhanced header with additional French compliance metadata
+        export_timestamp = datetime.now().strftime('%d/%m/%Y_%H%M%S')
+        vendor_ref = ""
+        
+        # Add vendor SIREN for French traceability
+        if invoice.vendor and invoice.vendor.siren_number:
+            vendor_ref = f"_SIREN_{invoice.vendor.siren_number}"
+        
+        # Add invoice reference for tracking
+        invoice_ref = invoice.invoice_number or "SANS_NUM"
+        
+        return f"SAGE;100;PNM;{self._format_sage_date(datetime.now().date())};{entry_count};INVOICE_AI_EXPORT_FR_{invoice_ref}{vendor_ref}_{export_timestamp}"
     
     def _format_pnm_footer(self, invoice: InvoiceData, entries: List['EnhancedSageExporter.AccountingEntry']) -> str:
-        """Format Sage 100 PNM file footer with control totals"""
+        """Format enhanced Sage 100 PNM file footer with comprehensive control totals and French compliance"""
         total_debit = sum(entry.debit_amount for entry in entries)
         total_credit = sum(entry.credit_amount for entry in entries)
-        return f"TOTAL;{len(entries)};{self._format_sage_amount(total_debit)};{self._format_sage_amount(total_credit)}"
+        
+        # Calculate additional control totals for French compliance
+        total_tva = sum(entry.debit_amount for entry in entries if "TVA" in entry.description)
+        total_ht = sum(entry.debit_amount for entry in entries if "TVA" not in entry.description and entry.debit_amount > 0)
+        
+        # Enhanced footer with French compliance metadata and new fields
+        compliance_info = []
+        if invoice.vendor and invoice.vendor.siren_number:
+            compliance_info.append(f"SIREN:{invoice.vendor.siren_number}")
+        if invoice.vendor and invoice.vendor.tva_number:
+            compliance_info.append(f"TVA_FOURN:{invoice.vendor.tva_number}")
+        if invoice.is_french_compliant:
+            compliance_info.append("FR_COMPLIANT")
+        
+        # Add payment and business context information
+        additional_info = []
+        if hasattr(invoice, 'payment_method') and invoice.payment_method:
+            additional_info.append(f"PAY:{invoice.payment_method[:8]}")
+        if hasattr(invoice, 'order_number') and invoice.order_number:
+            additional_info.append(f"CMD:{invoice.order_number[:8]}")
+        if hasattr(invoice, 'discount_amount') and invoice.discount_amount and invoice.discount_amount > 0:
+            additional_info.append(f"REM:{self._format_sage_amount(invoice.discount_amount)}")
+        if hasattr(invoice, 'deposit_amount') and invoice.deposit_amount and invoice.deposit_amount > 0:
+            additional_info.append(f"ACC:{self._format_sage_amount(invoice.deposit_amount)}")
+        
+        # Combine all metadata
+        all_info = compliance_info + additional_info
+        info_str = "_".join(all_info) if all_info else "STANDARD"
+        
+        return f"TOTAL;{len(entries)};{self._format_sage_amount(total_debit)};{self._format_sage_amount(total_credit)};HT:{self._format_sage_amount(total_ht)};TVA:{self._format_sage_amount(total_tva)};{info_str}"
     
     def _format_accounting_entry_to_pnm(self, entry: 'EnhancedSageExporter.AccountingEntry', invoice: InvoiceData) -> str:
         """
@@ -672,8 +805,8 @@ class EnhancedSageExporter:
         # Remove extra whitespace
         cleaned = ' '.join(cleaned.split())
         
-        # Truncate to 30 characters for most Sage fields
-        cleaned = cleaned[:30]
+        # Truncate to 35 characters for better readability (was 30)
+        cleaned = cleaned[:35]
         
         # Ensure French characters are properly handled
         # This will be encoded as windows-1252 when writing to file

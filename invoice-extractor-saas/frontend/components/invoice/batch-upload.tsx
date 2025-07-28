@@ -287,29 +287,6 @@ export function BatchUpload({ onComplete }: BatchUploadProps) {
 
   return (
     <div className="space-y-6">
-      {/* Processing Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Traitement par Lots
-          </CardTitle>
-          <CardDescription>
-            Téléversez plusieurs factures pour extraction de données. Après traitement, vous pourrez réviser et choisir le format d'export.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-medium text-blue-800 mb-2">Flux de traitement :</h4>
-            <ol className="text-sm text-blue-700 space-y-1">
-              <li>1. 📤 Téléversement et extraction des données</li>
-              <li>2. 📋 Révision dans "Factures en Attente de Révision"</li>
-              <li>3. ✅ Approbation des données validées</li>
-              <li>4. 📊 Export dans le format de votre choix</li>
-            </ol>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* File Upload */}
       <Card>
