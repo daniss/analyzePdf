@@ -119,11 +119,15 @@ export function useDashboardStats() {
   
   const stats = {
     total_invoices: invoices.length,
-    total_amount: invoices.reduce((sum, inv) => sum + (inv.data?.total || 0), 0),
+    // Use total_ttc for French invoices, fallback to total
+    total_amount: invoices.reduce((sum, inv) => {
+      const amount = inv.data?.total_ttc || inv.data?.total || 0
+      return sum + amount
+    }, 0),
     completed_invoices: invoices.filter(inv => inv.status === 'completed').length,
     processing_invoices: invoices.filter(inv => inv.status === 'processing').length,
     failed_invoices: invoices.filter(inv => inv.status === 'failed').length,
   }
 
-  return stats
+  return { data: stats }
 }

@@ -7,12 +7,12 @@ class Settings(BaseSettings):
     # App settings
     APP_NAME: str = "InvoiceAI"
     VERSION: str = "1.0.0"
-    DEBUG: bool = True
+    DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
     
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours
     
     # Database
     DATABASE_URL: str = os.getenv(
@@ -39,10 +39,11 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
     AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
     
-    # AI Settings - Claude 4 Only
-    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
-    AI_MODEL: str = "claude-3-opus-20240229"  # Claude 4 Opus with vision
-    MAX_TOKENS: int = 4000
+    # AI Settings - Groq with Llama 3.1 8B
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    AI_MODEL: str = "llama-3.1-8b-instant"  # Groq Llama 3.1 8B
+    MAX_TOKENS: int = 8192
+    
     
     # PDF Processing
     PDF_DPI: int = 300  # DPI for PDF to image conversion
@@ -51,9 +52,21 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     
+    # INSEE API Configuration for French compliance
+    INSEE_API_KEY: str = os.getenv("INSEE_API_KEY", "")
+    INSEE_API_SECRET: str = os.getenv("INSEE_API_SECRET", "")
+    
+    # GDPR and Encryption
+    ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "your-32-byte-encryption-key-change-this!")
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra environment variables
 
 
 settings = Settings()
+
+def get_settings() -> Settings:
+    """Get application settings instance"""
+    return settings

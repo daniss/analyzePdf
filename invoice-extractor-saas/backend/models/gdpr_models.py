@@ -48,6 +48,15 @@ class RetentionStatus(enum.Enum):
     LEGAL_HOLD = "legal_hold"
 
 
+class ReviewStatus(enum.Enum):
+    """Invoice review status for data accuracy validation"""
+    PENDING_REVIEW = "pending_review"      # Initial AI extraction completed
+    IN_REVIEW = "in_review"                # User is currently reviewing/editing
+    REVIEWED = "reviewed"                  # User has reviewed but not approved
+    APPROVED = "approved"                  # Ready for export
+    REJECTED = "rejected"                  # Contains errors, needs re-processing
+
+
 class AuditEventType(enum.Enum):
     """Types of audit events for GDPR compliance"""
     DATA_ACCESS = "data_access"
@@ -126,6 +135,7 @@ class Invoice(Base):
     processing_status = Column(String(20), default="pending")
     processing_started_at = Column(DateTime(timezone=True), nullable=True)
     processing_completed_at = Column(DateTime(timezone=True), nullable=True)
+    error_message = Column(Text, nullable=True)  # Store error details when processing fails
     
     # Encrypted extracted data
     extracted_data_encrypted = Column(Text, nullable=True)  # JSON encrypted with AES
@@ -145,6 +155,19 @@ class Invoice(Base):
     transfer_mechanism = Column(String(50), default="standard_contractual_clauses")
     transfer_risk_assessment_id = Column(UUID(as_uuid=True), ForeignKey("transfer_assessments.id"))
     
+    # Data review and approval tracking
+    review_status = Column(String(50), default="pending_review")
+    review_started_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    approved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    fields_modified_count = Column(Integer, default=0)  # Track how many fields were manually edited
+    
+    # Processing source tracking
+    processing_source = Column(String(20), default="individual")  # "individual", "batch", "api"
+    batch_id = Column(String(100), nullable=True)  # For batch processing tracking
+    
     # Audit trail
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -155,6 +178,8 @@ class Invoice(Base):
     retention_policy = relationship("RetentionPolicy")
     transfer_assessment = relationship("TransferRiskAssessment")
     audit_logs = relationship("AuditLog", back_populates="invoice")
+    siret_validations = relationship("SIRETValidationRecord", back_populates="invoice")
+    # cost_entries = relationship("CostTracking", back_populates="invoice")  # Removed to fix import issues
 
 
 class InvoiceDataSubject(Base):

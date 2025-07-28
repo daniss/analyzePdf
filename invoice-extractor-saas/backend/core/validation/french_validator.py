@@ -4,14 +4,26 @@ French Invoice Validation System
 This module provides comprehensive validation for French invoice compliance,
 including SIREN/SIRET validation, TVA number verification, and French
 regulatory requirements validation.
+
+Enhanced with comprehensive TVA validation engine for expert-comptable grade compliance.
 """
 
 import re
+import asyncio
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, date
 from decimal import Decimal
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from schemas.invoice import InvoiceData, FrenchBusinessInfo, FrenchTVABreakdown
+from core.validation.tva_validator import (
+    FrenchTVAValidator, 
+    TVAValidationResult,
+    validate_invoice_tva
+)
+from core.french_compliance.validation_cache import get_validation_cache
+from core.gdpr_audit import log_audit_event
 
 
 class FrenchInvoiceValidator:
@@ -30,16 +42,42 @@ class FrenchInvoiceValidator:
     def __init__(self):
         self.errors = []
         self.warnings = []
+        self.tva_validator = FrenchTVAValidator()
+        self.cache = get_validation_cache()
     
-    def validate_invoice(self, invoice: InvoiceData) -> Dict[str, Any]:
+    async def validate_invoice(
+        self, 
+        invoice: InvoiceData, 
+        db_session: AsyncSession,
+        validation_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Comprehensive French invoice validation
+        Comprehensive French invoice validation with enhanced TVA validation
         
+        Args:
+            invoice: Invoice data to validate
+            db_session: Database session for audit logging
+            validation_id: Optional validation ID for tracking
+            
         Returns:
             Dict with validation results including errors, warnings, and compliance status
         """
         self.errors = []
         self.warnings = []
+        
+        # GDPR audit log
+        await log_audit_event(
+            db_session,
+            user_id=None,
+            operation_type="french_invoice_validation",
+            data_categories=["invoice_data", "business_data", "financial_data"],
+            risk_level="medium",
+            details={
+                "invoice_number": invoice.invoice_number,
+                "validation_id": validation_id,
+                "purpose": "french_compliance_validation"
+            }
+        )
         
         # Basic required fields validation
         self._validate_basic_fields(invoice)
@@ -48,8 +86,8 @@ class FrenchInvoiceValidator:
         self._validate_vendor_info(invoice)
         self._validate_customer_info(invoice)
         
-        # TVA validation
-        self._validate_tva_compliance(invoice)
+        # Enhanced TVA validation
+        tva_result = await self._validate_comprehensive_tva(invoice, db_session, validation_id)
         
         # Sequential numbering validation
         self._validate_invoice_sequence(invoice)
@@ -58,13 +96,23 @@ class FrenchInvoiceValidator:
         self._validate_payment_terms(invoice)
         
         # Calculate compliance score
-        compliance_score = self._calculate_compliance_score()
+        compliance_score = self._calculate_compliance_score(tva_result)
         
         return {
-            'is_compliant': len(self.errors) == 0,
+            'is_compliant': len(self.errors) == 0 and tva_result.is_valid,
             'compliance_score': compliance_score,
-            'errors': self.errors,
-            'warnings': self.warnings,
+            'errors': self.errors + tva_result.errors,
+            'warnings': self.warnings + tva_result.warnings,
+            'tva_validation': {
+                'is_valid': tva_result.is_valid,
+                'rate_valid': tva_result.rate_valid,
+                'calculation_valid': tva_result.calculation_valid,
+                'exemption_valid': tva_result.exemption_valid,
+                'compliance_score': tva_result.compliance_score,
+                'suggestions': tva_result.suggestions,
+                'product_category': tva_result.product_category.value if tva_result.product_category else None,
+                'exemption_type': tva_result.exemption_type.value if tva_result.exemption_type else None
+            },
             'french_specific_validation': True
         }
     
@@ -160,24 +208,45 @@ class FrenchInvoiceValidator:
                 if not self._validate_siret(customer.siret_number):
                     self.errors.append(f"Numéro SIRET client invalide: {customer.siret_number}")
     
+    async def _validate_comprehensive_tva(
+        self, 
+        invoice: InvoiceData, 
+        db_session: AsyncSession,
+        validation_id: Optional[str] = None
+    ) -> TVAValidationResult:
+        """
+        Comprehensive TVA validation using the enhanced TVA validator
+        
+        Args:
+            invoice: Invoice data to validate
+            db_session: Database session
+            validation_id: Optional validation ID
+            
+        Returns:
+            TVA validation result
+        """
+        return await self.tva_validator.validate_invoice_tva(
+            invoice, 
+            db_session, 
+            validation_id
+        )
+    
     def _validate_tva_compliance(self, invoice: InvoiceData) -> None:
-        """Validate TVA compliance"""
+        """Legacy TVA validation - now replaced by comprehensive TVA validator"""
+        
+        # This method is kept for backward compatibility but now uses simplified checks
+        # The main TVA validation is done by _validate_comprehensive_tva
         
         # Check if TVA breakdown is provided
         if not invoice.tva_breakdown:
             self.warnings.append("Détail TVA par taux manquant - recommandé pour la conformité")
         
+        # Basic rate validation
         for tva_item in invoice.tva_breakdown:
-            # Validate TVA rates
             if tva_item.rate not in self.VALID_TVA_RATES:
                 self.errors.append(f"Taux de TVA invalide: {tva_item.rate}%. Taux valides: {self.VALID_TVA_RATES}")
-            
-            # Validate calculation
-            expected_tva = round(tva_item.taxable_amount * (tva_item.rate / 100), 2)
-            if abs(expected_tva - tva_item.tva_amount) > 0.01:
-                self.errors.append(f"Calcul TVA incorrect pour le taux {tva_item.rate}%: attendu {expected_tva}, trouvé {tva_item.tva_amount}")
         
-        # Validate line items have TVA information
+        # Basic line item validation
         for i, item in enumerate(invoice.line_items):
             if item.tva_rate is None:
                 self.warnings.append(f"Taux TVA manquant pour l'article {i+1}: {item.description}")
@@ -285,34 +354,85 @@ class FrenchInvoiceValidator:
         
         return luhn_checksum(number) == 0
     
-    def _calculate_compliance_score(self) -> float:
-        """Calculate compliance score based on errors and warnings"""
+    def _calculate_compliance_score(self, tva_result: TVAValidationResult) -> float:
+        """Calculate compliance score based on errors, warnings, and TVA validation"""
         
         # Base score
         score = 100.0
         
-        # Deduct for errors (more severe)
-        score -= len(self.errors) * 10
+        # Deduct for general errors (more severe)
+        score -= len(self.errors) * 8
         
-        # Deduct for warnings (less severe)
+        # Deduct for general warnings (less severe)
         score -= len(self.warnings) * 2
         
-        # Ensure score doesn't go below 0
-        return max(0.0, score)
+        # Weight TVA compliance heavily (30% of total score)
+        tva_weight = 0.3
+        general_weight = 0.7
+        
+        # Calculate weighted score
+        general_score = max(0.0, score)
+        tva_score = tva_result.compliance_score
+        
+        weighted_score = (general_score * general_weight) + (tva_score * tva_weight)
+        
+        # Ensure score doesn't go below 0 or above 100
+        return max(0.0, min(100.0, weighted_score))
 
 
-def validate_french_invoice(invoice: InvoiceData) -> Dict[str, Any]:
+async def validate_french_invoice(
+    invoice: InvoiceData, 
+    db_session: AsyncSession,
+    validation_id: Optional[str] = None
+) -> Dict[str, Any]:
     """
-    Convenience function to validate a French invoice
+    Convenience function to validate a French invoice with comprehensive TVA validation
+    
+    Args:
+        invoice: InvoiceData object to validate
+        db_session: Database session for audit logging
+        validation_id: Optional validation ID for tracking
+        
+    Returns:
+        Dict with validation results including enhanced TVA validation
+    """
+    validator = FrenchInvoiceValidator()
+    return await validator.validate_invoice(invoice, db_session, validation_id)
+
+def validate_french_invoice_sync(invoice: InvoiceData) -> Dict[str, Any]:
+    """
+    Synchronous convenience function for backward compatibility
+    Note: This provides basic validation without enhanced TVA features
     
     Args:
         invoice: InvoiceData object to validate
         
     Returns:
-        Dict with validation results
+        Dict with basic validation results
     """
     validator = FrenchInvoiceValidator()
-    return validator.validate_invoice(invoice)
+    
+    # Run basic validation without database features
+    validator._validate_basic_fields(invoice)
+    validator._validate_vendor_info(invoice)
+    validator._validate_customer_info(invoice)
+    validator._validate_tva_compliance(invoice)  # Basic TVA validation only
+    validator._validate_invoice_sequence(invoice)
+    validator._validate_payment_terms(invoice)
+    
+    # Simple score calculation
+    score = 100.0
+    score -= len(validator.errors) * 10
+    score -= len(validator.warnings) * 2
+    
+    return {
+        'is_compliant': len(validator.errors) == 0,
+        'compliance_score': max(0.0, score),
+        'errors': validator.errors,
+        'warnings': validator.warnings,
+        'french_specific_validation': True,
+        'note': 'Basic validation only - use async validate_french_invoice for full TVA validation'
+    }
 
 
 def check_mandatory_french_fields(invoice: InvoiceData) -> List[str]:

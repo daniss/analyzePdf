@@ -39,12 +39,12 @@ class FECExporter:
             'CompAuxLib',        # Libellé de compte auxiliaire
             'PieceRef',          # Référence de la pièce justificative
             'PieceDate',         # Date de la pièce justificative
-            'EcritureLib',       # Libellé de l\\'écriture
+            'EcritureLib',       # Libellé de l\'écriture
             'Debit',             # Montant au débit
             'Credit',            # Montant au crédit
-            'EcritureLet',       # Lettrage de l\\'écriture
+            'EcritureLet',       # Lettrage de l\'écriture
             'DateLet',           # Date de lettrage
-            'ValidDate',         # Date de validation de l\\'écriture
+            'ValidDate',         # Date de validation de l\'écriture
             'Montantdevise',     # Montant en devise
             'Idevise'            # Identifiant de la devise
         ]
@@ -327,7 +327,7 @@ class FECExporter:
         elif any(word in description_lower for word in [
             'assurance', 'responsabilité'
         ]):
-            return '616000'  # Primes d\\'assurance
+            return '616000'  # Primes d\'assurance
         elif any(word in description_lower for word in [
             'location', 'loyer', 'bail'
         ]):
@@ -345,7 +345,7 @@ class FECExporter:
             '611000': 'Services extérieurs',
             '624100': 'Transport de biens',
             '623000': 'Publicité et relations publiques',
-            '616000': 'Primes d\\'assurance',
+            '616000': 'Primes d\'assurance',
             '613000': 'Locations',
             '445662': 'TVA déductible sur biens',
             '445663': 'TVA déductible sur services'
@@ -436,7 +436,7 @@ class FECExporter:
         
         return {
             'name': 'FEC',
-            'description': 'Fichier des Écritures Comptables pour l\\'administration fiscale française',
+            'description': 'Fichier des Écritures Comptables pour l\'administration fiscale française',
             'file_extension': '.txt',
             'mime_type': 'text/plain',
             'compliance': [

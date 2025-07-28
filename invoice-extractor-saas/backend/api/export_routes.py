@@ -4,19 +4,52 @@ import json
 import csv
 import io
 import zipfile
+import uuid
 from typing import List, Optional
 from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
+from models.user import User
+from core.database import get_db
+from crud.invoice import get_invoice_by_id, get_extracted_data
 from schemas.invoice import InvoiceData, FrenchBusinessInfo, FrenchTVABreakdown, LineItem
-from api.exports import (
-    export_to_sage_pnm, export_batch_to_sage_pnm,
-    export_to_ebp_ascii, export_batch_to_ebp_ascii,
-    export_to_ciel_ximport, export_batch_to_ciel_ximport,
-    export_to_fec, export_batch_to_fec
-)
+from api.exports.sage_exporter import export_to_sage_pnm, export_batch_to_sage_pnm
+from api.exports.ebp_exporter import export_to_ebp_ascii, export_batch_to_ebp_ascii
+from api.exports.ciel_exporter import export_to_ciel_ximport, export_batch_to_ciel_ximport
+from api.exports.fec_exporter import export_to_fec, export_batch_to_fec
 
 router = APIRouter()
+
+
+async def get_real_invoice_data(invoice_id: str, user_id: uuid.UUID, db: AsyncSession, require_approved: bool = False) -> InvoiceData:
+    """Get real invoice data from database"""
+    try:
+        # Get invoice from database
+        invoice = await get_invoice_by_id(db=db, invoice_id=uuid.UUID(invoice_id), user_id=user_id)
+        if not invoice:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        
+        # Check if invoice is approved (for export from review workflow)
+        if require_approved and invoice.review_status != "approved":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invoice must be approved before export. Current status: {invoice.review_status or 'pending_review'}"
+            )
+        
+        # Get extracted data
+        extracted_data_dict = await get_extracted_data(db=db, invoice_id=invoice.id, user_id=user_id)
+        if not extracted_data_dict or "invoice_data" not in extracted_data_dict:
+            raise HTTPException(status_code=404, detail="Invoice data not found")
+        
+        invoice_data_dict = extracted_data_dict["invoice_data"]
+        
+        # Convert back to InvoiceData object
+        invoice_data = InvoiceData(**invoice_data_dict)
+        return invoice_data
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get invoice data: {str(e)}")
 
 
 # Mock function to get invoice data (replace with actual database query)
@@ -100,12 +133,13 @@ def get_mock_french_invoice(invoice_id: str) -> InvoiceData:
 @router.get("/{invoice_id}/csv")
 async def export_csv(
     invoice_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Export invoice as CSV with French formatting"""
     
-    # TODO: Get invoice from database
-    invoice_data = get_mock_french_invoice(invoice_id)
+    # Get real invoice from database
+    invoice_data = await get_real_invoice_data(invoice_id, current_user.id, db)
     
     # Create French-formatted CSV
     output = io.StringIO()
@@ -115,37 +149,61 @@ async def export_csv(
     writer.writerow(["Champ", "Valeur"])
     
     # Basic information
-    writer.writerow(["Numéro de facture", invoice_data.invoice_number])
-    writer.writerow(["Date", invoice_data.date])
-    writer.writerow(["Date d'échéance", invoice_data.due_date])
+    writer.writerow(["Numéro de facture", invoice_data.invoice_number or ""])
+    writer.writerow(["Date", invoice_data.date or ""])
+    writer.writerow(["Date d'échéance", invoice_data.due_date or ""])
     
     # Vendor information
     if invoice_data.vendor:
-        writer.writerow(["Fournisseur - Nom", invoice_data.vendor.name])
-        writer.writerow(["Fournisseur - Adresse", invoice_data.vendor.address])
-        writer.writerow(["Fournisseur - SIREN", invoice_data.vendor.siren_number])
-        writer.writerow(["Fournisseur - SIRET", invoice_data.vendor.siret_number])
-        writer.writerow(["Fournisseur - TVA", invoice_data.vendor.tva_number])
+        writer.writerow(["Fournisseur - Nom", invoice_data.vendor.name or ""])
+        writer.writerow(["Fournisseur - Adresse", invoice_data.vendor.address or ""])
+        writer.writerow(["Fournisseur - SIREN", invoice_data.vendor.siren_number or ""])
+        writer.writerow(["Fournisseur - SIRET", invoice_data.vendor.siret_number or ""])
+        writer.writerow(["Fournisseur - TVA", invoice_data.vendor.tva_number or ""])
+    else:
+        # Use legacy fields if vendor object not available
+        writer.writerow(["Fournisseur - Nom", invoice_data.vendor_name or ""])
+        writer.writerow(["Fournisseur - Adresse", invoice_data.vendor_address or ""])
     
     # Customer information
     if invoice_data.customer:
-        writer.writerow(["Client - Nom", invoice_data.customer.name])
-        writer.writerow(["Client - Adresse", invoice_data.customer.address])
+        writer.writerow(["Client - Nom", invoice_data.customer.name or ""])
+        writer.writerow(["Client - Adresse", invoice_data.customer.address or ""])
+        writer.writerow(["Client - SIREN", invoice_data.customer.siren_number or ""])
+        writer.writerow(["Client - SIRET", invoice_data.customer.siret_number or ""])
+        writer.writerow(["Client - TVA", invoice_data.customer.tva_number or ""])
+    else:
+        # Use legacy fields if customer object not available
+        writer.writerow(["Client - Nom", invoice_data.customer_name or ""])
+        writer.writerow(["Client - Adresse", invoice_data.customer_address or ""])
+        writer.writerow(["Client - SIREN", ""])
+        writer.writerow(["Client - SIRET", ""])
+        writer.writerow(["Client - TVA", ""])
     
-    # Financial totals (French format with comma)
-    writer.writerow(["Sous-total HT", f"{invoice_data.subtotal_ht:.2f}".replace('.', ',')])
-    writer.writerow(["Total TVA", f"{invoice_data.total_tva:.2f}".replace('.', ',')])
-    writer.writerow(["Total TTC", f"{invoice_data.total_ttc:.2f}".replace('.', ',')])
+    # Financial totals (French format with comma) - handle None values
+    subtotal = invoice_data.subtotal_ht or invoice_data.subtotal or 0
+    total_tax = invoice_data.total_tva or invoice_data.tax or 0
+    total = invoice_data.total_ttc or invoice_data.total or 0
+    
+    writer.writerow(["Sous-total HT", f"{subtotal:.2f}".replace('.', ',')])
+    writer.writerow(["Total TVA", f"{total_tax:.2f}".replace('.', ',')])
+    writer.writerow(["Total TTC", f"{total:.2f}".replace('.', ',')])
     
     # Line items
     writer.writerow(["", ""])  # Empty row
     writer.writerow(["Articles", ""])
-    for i, item in enumerate(invoice_data.line_items, 1):
-        writer.writerow([f"Article {i} - Description", item.description])
-        writer.writerow([f"Article {i} - Quantité", str(item.quantity).replace('.', ',')])
-        writer.writerow([f"Article {i} - Prix unitaire HT", f"{item.unit_price:.2f}".replace('.', ',')])
-        writer.writerow([f"Article {i} - Total HT", f"{item.total:.2f}".replace('.', ',')])
-        writer.writerow([f"Article {i} - Taux TVA", f"{item.tva_rate:.1f}%"])
+    if invoice_data.line_items:
+        for i, item in enumerate(invoice_data.line_items, 1):
+            writer.writerow([f"Article {i} - Description", item.description or ""])
+            writer.writerow([f"Article {i} - Quantité", str(item.quantity or 0).replace('.', ',')])
+            writer.writerow([f"Article {i} - Prix unitaire HT", f"{item.unit_price or 0:.2f}".replace('.', ',')])
+            writer.writerow([f"Article {i} - Total HT", f"{item.total or 0:.2f}".replace('.', ',')])
+            
+            # Handle None tax rate
+            if item.tva_rate is not None:
+                writer.writerow([f"Article {i} - Taux TVA", f"{item.tva_rate:.1f}%"])
+            else:
+                writer.writerow([f"Article {i} - Taux TVA", "0.0%"])
     
     # Return as download
     output.seek(0)
@@ -162,12 +220,13 @@ async def export_csv(
 @router.get("/{invoice_id}/json")
 async def export_json(
     invoice_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Export invoice as JSON with French structure"""
     
-    # TODO: Get invoice from database
-    invoice_data = get_mock_french_invoice(invoice_id)
+    # Get real invoice from database
+    invoice_data = await get_real_invoice_data(invoice_id, current_user.id, db)
     
     # Convert to French-formatted JSON
     json_data = {
@@ -240,12 +299,13 @@ async def export_json(
 @router.get("/{invoice_id}/sage")
 async def export_sage(
     invoice_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Export invoice to Sage PNM format"""
     
-    # TODO: Get invoice from database
-    invoice_data = get_mock_french_invoice(invoice_id)
+    # Get real invoice from database
+    invoice_data = await get_real_invoice_data(invoice_id, current_user.id, db)
     
     # Export to Sage PNM format
     sage_content = export_to_sage_pnm(invoice_data)
@@ -263,12 +323,13 @@ async def export_sage(
 @router.get("/{invoice_id}/ebp")
 async def export_ebp(
     invoice_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Export invoice to EBP ASCII format"""
     
-    # TODO: Get invoice from database
-    invoice_data = get_mock_french_invoice(invoice_id)
+    # Get real invoice from database
+    invoice_data = await get_real_invoice_data(invoice_id, current_user.id, db)
     
     # Export to EBP ASCII format
     ebp_content = export_to_ebp_ascii(invoice_data)
@@ -286,12 +347,13 @@ async def export_ebp(
 @router.get("/{invoice_id}/ciel")
 async def export_ciel(
     invoice_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Export invoice to Ciel XIMPORT format"""
     
-    # TODO: Get invoice from database
-    invoice_data = get_mock_french_invoice(invoice_id)
+    # Get real invoice from database
+    invoice_data = await get_real_invoice_data(invoice_id, current_user.id, db)
     
     # Export to Ciel XIMPORT format
     ciel_content = export_to_ciel_ximport(invoice_data)
@@ -311,12 +373,13 @@ async def export_fec(
     invoice_id: str,
     journal_code: str = Query("ACH", description="Code journal (ACH, VTE, etc.)"),
     sequence_number: int = Query(1, description="Numéro séquentiel FEC"),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Export invoice to FEC format for French tax administration"""
     
-    # TODO: Get invoice from database
-    invoice_data = get_mock_french_invoice(invoice_id)
+    # Get real invoice from database
+    invoice_data = await get_real_invoice_data(invoice_id, current_user.id, db)
     
     # Export to FEC format
     fec_content = export_to_fec(invoice_data, journal_code, sequence_number)
@@ -338,7 +401,8 @@ async def export_batch(
     invoice_ids: List[str],
     format: str = Query("csv", description="Format d'export: csv, json, sage, ebp, ciel, fec"),
     journal_code: str = Query("ACH", description="Code journal pour FEC"),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
 ):
     """Export multiple invoices in specified format"""
     
@@ -349,8 +413,8 @@ async def export_batch(
             detail=f"Format invalide. Formats supportés: {', '.join(valid_formats)}"
         )
     
-    # TODO: Get multiple invoices from database
-    invoices = [get_mock_french_invoice(invoice_id) for invoice_id in invoice_ids]
+    # Get multiple invoices from database
+    invoices = [await get_real_invoice_data(invoice_id, current_user.id, db) for invoice_id in invoice_ids]
     
     # Create ZIP file with all exports
     zip_buffer = io.BytesIO()
@@ -397,7 +461,7 @@ async def export_batch(
 
 @router.get("/formats")
 async def get_export_formats(
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get available export formats for French accounting"""
     
@@ -463,3 +527,154 @@ async def get_export_formats(
             ]
         }
     }
+
+
+# Approved invoice export endpoints (for review workflow)
+
+@router.get("/approved/{invoice_id}/{format}")
+async def export_approved_invoice(
+    invoice_id: str,
+    format: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Export approved invoice in specified format (only for reviewed/approved invoices)"""
+    
+    valid_formats = ["csv", "json", "sage", "ebp", "ciel", "fec"]
+    if format not in valid_formats:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Format invalide. Formats supportés: {', '.join(valid_formats)}"
+        )
+    
+    # Get invoice data (must be approved)
+    invoice_data = await get_real_invoice_data(invoice_id, current_user.id, db, require_approved=True)
+    
+    # Generate export based on format
+    if format == "csv":
+        return await export_csv_content(invoice_data, invoice_id)
+    elif format == "json":
+        return await export_json_content(invoice_data, invoice_id)
+    elif format == "sage":
+        return await export_sage_content(invoice_data, invoice_id)
+    elif format == "ebp":
+        return await export_ebp_content(invoice_data, invoice_id)
+    elif format == "ciel":
+        return await export_ciel_content(invoice_data, invoice_id)
+    elif format == "fec":
+        return await export_fec_content(invoice_data, invoice_id)
+
+
+async def export_csv_content(invoice_data: InvoiceData, invoice_id: str):
+    """Generate CSV export content"""
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    
+    # Write headers
+    writer.writerow(["Champ", "Valeur"])
+    
+    # Basic information
+    writer.writerow(["Numéro de facture", invoice_data.invoice_number or ""])
+    writer.writerow(["Date", invoice_data.date or ""])
+    writer.writerow(["Date d'échéance", invoice_data.due_date or ""])
+    
+    # Vendor information
+    if invoice_data.vendor:
+        writer.writerow(["Fournisseur - Nom", invoice_data.vendor.name or ""])
+        writer.writerow(["Fournisseur - SIRET", invoice_data.vendor.siret_number or ""])
+        writer.writerow(["Fournisseur - TVA", invoice_data.vendor.tva_number or ""])
+    
+    # Financial totals
+    subtotal = invoice_data.subtotal_ht or invoice_data.subtotal or 0
+    total_tax = invoice_data.total_tva or invoice_data.tax or 0
+    total = invoice_data.total_ttc or invoice_data.total or 0
+    
+    writer.writerow(["Sous-total HT", f"{subtotal:.2f}".replace('.', ',')])
+    writer.writerow(["Total TVA", f"{total_tax:.2f}".replace('.', ',')])
+    writer.writerow(["Total TTC", f"{total:.2f}".replace('.', ',')])
+    
+    output.seek(0)
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode('utf-8')),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename=facture_approuvee_{invoice_id}.csv",
+            "Content-Type": "text/csv; charset=utf-8"
+        }
+    )
+
+
+async def export_json_content(invoice_data: InvoiceData, invoice_id: str):
+    """Generate JSON export content"""
+    json_data = {
+        "numero_facture": invoice_data.invoice_number,
+        "date_facture": invoice_data.date,
+        "statut": "approuve",
+        "fournisseur": {
+            "nom": invoice_data.vendor.name if invoice_data.vendor else None,
+            "siret": invoice_data.vendor.siret_number if invoice_data.vendor else None,
+            "tva": invoice_data.vendor.tva_number if invoice_data.vendor else None,
+        },
+        "totaux": {
+            "sous_total_ht": invoice_data.subtotal_ht,
+            "total_tva": invoice_data.total_tva,
+            "total_ttc": invoice_data.total_ttc,
+        },
+        "conformite_francaise": invoice_data.is_french_compliant
+    }
+    
+    return StreamingResponse(
+        io.BytesIO(json.dumps(json_data, indent=2, ensure_ascii=False).encode('utf-8')),
+        media_type="application/json; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename=facture_approuvee_{invoice_id}.json",
+        }
+    )
+
+
+async def export_sage_content(invoice_data: InvoiceData, invoice_id: str):
+    """Generate Sage export content"""
+    sage_content = export_to_sage_pnm(invoice_data)
+    return StreamingResponse(
+        io.BytesIO(sage_content.encode('utf-8')),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename=facture_approuvee_{invoice_id}_sage.pnm",
+        }
+    )
+
+
+async def export_ebp_content(invoice_data: InvoiceData, invoice_id: str):
+    """Generate EBP export content"""
+    ebp_content = export_to_ebp_ascii(invoice_data)
+    return StreamingResponse(
+        io.BytesIO(ebp_content.encode('utf-8')),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename=facture_approuvee_{invoice_id}_ebp.txt",
+        }
+    )
+
+
+async def export_ciel_content(invoice_data: InvoiceData, invoice_id: str):
+    """Generate Ciel export content"""
+    ciel_content = export_to_ciel_ximport(invoice_data)
+    return StreamingResponse(
+        io.BytesIO(ciel_content.encode('utf-8')),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename=facture_approuvee_{invoice_id}_ciel.txt",
+        }
+    )
+
+
+async def export_fec_content(invoice_data: InvoiceData, invoice_id: str):
+    """Generate FEC export content"""
+    fec_content = export_to_fec(invoice_data, "ACH", 1)
+    return StreamingResponse(
+        io.BytesIO(fec_content.encode('utf-8')),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename=facture_approuvee_{invoice_id}_fec.txt",
+        }
+    )

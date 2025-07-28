@@ -356,17 +356,18 @@ export const frenchVATRates = [
  */
 export const t = (key: string): string => {
   const keys = key.split('.');
-  let value: any = frenchTranslations;
+  let value: unknown = frenchTranslations;
   
   for (const k of keys) {
-    value = value?.[k];
-    if (value === undefined) {
+    if (typeof value === 'object' && value !== null && k in value) {
+      value = (value as Record<string, unknown>)[k];
+    } else {
       console.warn(`Translation key not found: ${key}`);
       return key;
     }
   }
   
-  return value;
+  return typeof value === 'string' ? value : key;
 };
 
 export default frenchTranslations;

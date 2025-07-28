@@ -78,6 +78,7 @@ export function FileUpload({
             id: `error-${i}`,
             filename: file.name,
             status: 'failed',
+            processing_mode: 'auto',
             created_at: new Date().toISOString(),
             error_message: errorMessage
           })

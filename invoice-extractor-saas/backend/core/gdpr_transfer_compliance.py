@@ -98,7 +98,7 @@ class GDPRTransferCompliance:
             )
             
             db.add(assessment)
-            db.commit()
+            await db.commit()
             
             # Log the assessment
             await gdpr_audit.log_data_access(

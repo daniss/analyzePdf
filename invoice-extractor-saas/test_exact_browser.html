@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exact Browser Test</title>
+</head>
+<body>
+    <h1>Exact Browser Test for Problematic PDF</h1>
+    
+    <div>
+        <input type="file" id="fileInput" accept=".pdf">
+        <button onclick="testUpload()">Test Upload</button>
+    </div>
+    
+    <div id="output" style="margin-top: 20px; font-family: monospace;"></div>
+
+    <script>
+        let token = '';
+        
+        function log(message) {
+            const output = document.getElementById('output');
+            output.innerHTML += new Date().toISOString() + ': ' + message + '<br>';
+            console.log(message);
+        }
+        
+        async function login() {
+            log('🔐 Logging in...');
+            
+            const formData = new FormData();
+            formData.append('username', 'fresh@invoiceai.com');
+            formData.append('password', 'freshpassword123');
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/auth/token', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.access_token;
+                    log('✅ Login successful');
+                    return true;
+                } else {
+                    log('❌ Login failed: ' + response.status);
+                    return false;
+                }
+            } catch (error) {
+                log('❌ Login error: ' + error.message);
+                return false;
+            }
+        }
+        
+        async function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            
+            if (!fileInput.files.length) {
+                log('❌ Please select a file first');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            log(`📁 Testing file: ${file.name} (${file.size} bytes)`);
+            
+            // Login first
+            if (!token) {
+                const loginSuccess = await login();
+                if (!loginSuccess) return;
+            }
+            
+            // Create FormData exactly like frontend
+            const formData = new FormData();
+            formData.append('files', file, file.name);
+            
+            log('📦 FormData created');
+            log(`  File: ${file.name}`);
+            log(`  Size: ${file.size} bytes`);
+            log(`  Type: ${file.type}`);
+            
+            try {
+                log('🚀 Making fetch request...');
+                const startTime = Date.now();
+                
+                const response = await fetch('http://localhost:8000/api/batch/batch-process', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                        // Don't set Content-Type for FormData
+                    },
+                    body: formData
+                });
+                
+                const endTime = Date.now();
+                log(`⏱️  Request took: ${endTime - startTime}ms`);
+                log(`📡 Response status: ${response.status}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ SUCCESS!');
+                    log('📋 Response: ' + JSON.stringify(data, null, 2));
+                } else {
+                    log('❌ FAILED!');
+                    const errorText = await response.text();
+                    log('📝 Error: ' + errorText);
+                }
+                
+            } catch (error) {
+                log('❌ EXCEPTION: ' + error.message);
+                log('📝 Stack: ' + error.stack);
+            }
+        }
+        
+        // Auto-login on page load
+        window.addEventListener('load', () => {
+            log('🌐 Page loaded, ready for testing');
+            log('📝 Instructions: Select the problematic PDF file and click "Test Upload"');
+        });
+    </script>
+</body>
+</html>

@@ -7,8 +7,8 @@ import { ReactQueryProvider } from "@/lib/query-client"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "InvoiceAI - Smart Invoice Data Extraction",
-  description: "Extract structured data from PDF invoices using AI. Fast, accurate, and reliable invoice processing for modern businesses.",
+  title: "FacturePro - Extraction Intelligente de Données",
+  description: "Extraction de données structurées à partir de factures PDF. Traitement rapide, précis et fiable pour les entreprises modernes.",
 }
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <body className={inter.className}>
         <ReactQueryProvider>
           <AuthProvider>

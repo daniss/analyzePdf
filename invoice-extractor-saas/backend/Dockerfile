@@ -6,7 +6,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     tesseract-ocr \
+    tesseract-ocr-fra \
     poppler-utils \
+    libpoppler-cpp-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements

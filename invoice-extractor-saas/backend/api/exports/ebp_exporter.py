@@ -353,7 +353,7 @@ class EBPExporter:
         
         return {
             'name': 'EBP ASCII',
-            'description': 'Format d\\'export ASCII pour logiciels EBP Comptabilité',
+            'description': 'Format d\'export ASCII pour logiciels EBP Comptabilité',
             'file_extension': '.txt',
             'mime_type': 'text/plain',
             'software_compatibility': [

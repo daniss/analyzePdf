@@ -209,11 +209,23 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """Handle request validation errors"""
     
+    # Handle FormData body safely to avoid JSON serialization errors
+    invalid_body = None
+    if hasattr(exc, 'body') and exc.body is not None:
+        try:
+            # Try to serialize body, but handle FormData gracefully
+            if hasattr(exc.body, '__dict__'):
+                invalid_body = str(exc.body)  # Convert to string representation
+            else:
+                invalid_body = exc.body
+        except (TypeError, AttributeError):
+            invalid_body = "<FormData or non-serializable body>"
+    
     validation_error = ValidationError(
         message="Request validation failed",
         details={
             "validation_errors": exc.errors(),
-            "invalid_body": exc.body if hasattr(exc, 'body') else None
+            "invalid_body": invalid_body
         }
     )
     

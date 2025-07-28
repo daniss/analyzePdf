@@ -11,8 +11,8 @@ RUN npm ci
 # Copy application code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application (skip for development)
+# RUN npm run build
 
 # Expose port
 EXPOSE 3000

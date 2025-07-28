@@ -7,6 +7,15 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    // Tier colors
+    'bg-green-500', 'bg-green-100', 'bg-green-50', 'text-green-700', 'text-green-600', 'text-green-800',
+    'bg-blue-500', 'bg-blue-100', 'bg-blue-50', 'text-blue-700', 'text-blue-600', 'text-blue-800',
+    'bg-purple-500', 'bg-purple-100', 'bg-purple-50', 'text-purple-700', 'text-purple-600', 'text-purple-800',
+    'border-green-200', 'border-blue-200', 'border-purple-200',
+    'bg-green-50/30', 'bg-blue-50/30', 'bg-purple-50/30',
+    'border-green-200/50', 'border-blue-200/50', 'border-purple-200/50'
+  ],
   theme: {
     container: {
       center: true,

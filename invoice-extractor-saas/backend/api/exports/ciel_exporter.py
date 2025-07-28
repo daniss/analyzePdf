@@ -492,7 +492,7 @@ class CielExporter:
         
         return {
             'name': 'Ciel XIMPORT',
-            'description': 'Format d\\'export XIMPORT pour logiciels Ciel Comptabilité',
+            'description': 'Format d\'export XIMPORT pour logiciels Ciel Comptabilité',
             'file_extension': '.txt',
             'mime_type': 'text/plain',
             'software_compatibility': [

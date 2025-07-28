@@ -79,7 +79,7 @@ class GDPRAuditService:
             
             if db:
                 db.add(audit_log)
-                db.commit()
+                await db.commit()
                 return str(audit_log.id)
             else:
                 async with self._get_db_session() as session:
@@ -138,7 +138,7 @@ class GDPRAuditService:
             
             if db:
                 db.add(audit_log)
-                db.commit()
+                await db.commit()
                 return str(audit_log.id)
             else:
                 async with self._get_db_session() as session:
@@ -200,7 +200,7 @@ class GDPRAuditService:
             
             if db:
                 db.add(audit_log)
-                db.commit()
+                await db.commit()
                 return str(audit_log.id)
             else:
                 async with self._get_db_session() as session:
@@ -260,7 +260,7 @@ class GDPRAuditService:
             
             if db:
                 db.add(audit_log)
-                db.commit()
+                await db.commit()
                 return str(audit_log.id)
             else:
                 async with self._get_db_session() as session:
@@ -324,7 +324,7 @@ class GDPRAuditService:
             
             if db:
                 db.add(audit_log)
-                db.commit()
+                await db.commit()
                 return str(audit_log.id)
             else:
                 async with self._get_db_session() as session:
@@ -381,7 +381,7 @@ class GDPRAuditService:
             
             if db:
                 db.add(audit_log)
-                db.commit()
+                await db.commit()
                 return str(audit_log.id)
             else:
                 async with self._get_db_session() as session:
@@ -541,3 +541,40 @@ class GDPRAuditService:
 
 # Global audit service instance
 gdpr_audit = GDPRAuditService()
+
+# Convenience function for general audit logging
+async def log_audit_event(
+    db_session,
+    user_id: Optional[str] = None,
+    operation_type: str = "data_processing",
+    data_categories: List[str] = None,
+    risk_level: str = "low",
+    details: Dict[str, Any] = None,
+    invoice_id: Optional[str] = None,
+    data_subject_id: Optional[str] = None
+) -> str:
+    """
+    Convenience function for logging general audit events
+    
+    Args:
+        db_session: Database session
+        user_id: ID of user performing operation
+        operation_type: Type of operation being performed
+        data_categories: Categories of data being processed
+        risk_level: Risk level (low, medium, high, critical)
+        details: Additional operation details
+        invoice_id: Optional invoice ID
+        data_subject_id: Optional data subject ID
+        
+    Returns:
+        Audit log ID
+    """
+    return await gdpr_audit.log_data_access(
+        user_id=user_id,
+        data_subject_id=data_subject_id,
+        invoice_id=invoice_id,
+        purpose=operation_type,
+        legal_basis="legitimate_interest",
+        data_categories=data_categories or [],
+        db=db_session
+    )

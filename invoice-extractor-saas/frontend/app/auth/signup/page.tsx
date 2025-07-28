@@ -22,12 +22,12 @@ export default function SignUpPage() {
     setLocalError('')
     
     if (password !== confirmPassword) {
-      setLocalError('Passwords do not match')
+      setLocalError('Les mots de passe ne correspondent pas')
       return
     }
 
     if (password.length < 8) {
-      setLocalError('Password must be at least 8 characters long')
+      setLocalError('Le mot de passe doit contenir au moins 8 caractères')
       return
     }
     
@@ -46,9 +46,9 @@ export default function SignUpPage() {
           <div className="flex justify-center mb-4">
             <FileText className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Create an account</CardTitle>
+          <CardTitle className="text-2xl">Créer un compte</CardTitle>
           <CardDescription>
-            Start your free trial with 5 invoices per month
+            Commencez votre essai gratuit avec 5 factures par mois
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -60,28 +60,28 @@ export default function SignUpPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="name@example.com"
+                placeholder="nom@exemple.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Company Name (Optional)</Label>
+              <Label htmlFor="company">Nom de l'entreprise (Optionnel)</Label>
               <Input
                 id="company"
                 type="text"
-                placeholder="Acme Inc."
+                placeholder="Entreprise SARL"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
@@ -92,7 +92,7 @@ export default function SignUpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -105,22 +105,22 @@ export default function SignUpPage() {
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? 'Création du compte...' : "S'inscrire"}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
-              Already have an account?{' '}
+              Vous avez déjà un compte ?{' '}
               <Link href="/auth/signin" className="text-primary hover:underline">
-                Sign in
+                Se connecter
               </Link>
             </p>
             <p className="text-xs text-center text-muted-foreground">
-              By signing up, you agree to our{' '}
+              En vous inscrivant, vous acceptez nos{' '}
               <Link href="/terms" className="underline">
-                Terms of Service
+                Conditions d'utilisation
               </Link>{' '}
-              and{' '}
+              et notre{' '}
               <Link href="/privacy" className="underline">
-                Privacy Policy
+                Politique de confidentialité
               </Link>
             </p>
           </CardFooter>

@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Redirect to dashboard
       router.push('/dashboard')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed'
+      const errorMessage = error instanceof Error ? error.message : 'Échec de la connexion'
       setError(errorMessage)
       throw error
     } finally {
@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Redirect to dashboard
       router.push('/dashboard')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed'
+      const errorMessage = error instanceof Error ? error.message : 'Échec de l\'inscription'
       setError(errorMessage)
       throw error
     } finally {

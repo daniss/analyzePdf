@@ -18,25 +18,25 @@ export default function Home() {
                 </div>
               </div>
               <span className="font-bold text-xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                InvoiceAI France
+                FacturePro France
               </span>
             </Link>
           </div>
           <div className="flex flex-1 items-center justify-end space-x-4">
             <nav className="hidden md:flex items-center space-x-8">
               <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Features
+                Fonctionnalités
               </Link>
               <Link href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Pricing
+                Tarifs
               </Link>
               <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Dashboard
+                Tableau de Bord
               </Link>
             </nav>
             <Button asChild size="lg" className="gradient-primary text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
               <Link href="/auth/signin">
-                Get Started
+                Commencer
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -67,7 +67,7 @@ export default function Home() {
           </h1>
           
           <p className="mt-8 text-xl leading-8 text-muted-foreground max-w-2xl mx-auto">
-            La solution IA française pour les experts-comptables : traitement automatique des factures avec
+            La solution française pour les experts-comptables : traitement automatique des factures avec
             <span className="text-foreground font-semibold"> 99% de précision</span>
             et conformité GDPR garantie
           </p>
@@ -175,7 +175,7 @@ export default function Home() {
               </div>
               <CardTitle className="text-xl mb-2">Traitement par Lot</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Traitez jusqu'à 100+ factures simultanément pour un gain de temps maximum sur vos saisies
+                Traitez jusqu&apos;à 100+ factures simultanément pour un gain de temps maximum sur vos saisies
               </CardDescription>
             </CardHeader>
           </Card>
@@ -187,7 +187,7 @@ export default function Home() {
               </div>
               <CardTitle className="text-xl mb-2">Économies Garanties</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Réduisez vos coûts de saisie de 12€ à 3€ par facture, soit 75% d'économies sur votre poste de travail
+                Réduisez vos coûts de saisie de 12€ à 3€ par facture, soit 75% d&apos;économies sur votre poste de travail
               </CardDescription>
             </CardHeader>
           </Card>
@@ -231,9 +231,9 @@ export default function Home() {
                     2
                   </div>
                 </div>
-                <h3 className="mb-4 text-2xl font-semibold">Traitement IA</h3>
+                <h3 className="mb-4 text-2xl font-semibold">Traitement Automatique</h3>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  L'IA reconnait automatiquement SIREN, SIRET, TVA et tous les champs obligatoires français
+                  Le système reconnait automatiquement SIREN, SIRET, TVA et tous les champs obligatoires français
                 </p>
               </div>
               
@@ -246,7 +246,7 @@ export default function Home() {
                 </div>
                 <h3 className="mb-4 text-2xl font-semibold">Export Comptable</h3>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  Export direct vers Sage, EBP, Ciel ou format FEC pour l'administration fiscale
+                  Export direct vers Sage, EBP, Ciel ou format FEC pour l&apos;administration fiscale
                 </p>
               </div>
             </div>
@@ -264,7 +264,7 @@ export default function Home() {
             Choisissez votre formule
           </h2>
           <p className="text-xl text-muted-foreground">
-            Tarification transparente qui s'adapte à la taille de votre cabinet comptable
+            Tarification transparente qui s&apos;adapte à la taille de votre cabinet comptable
           </p>
         </div>
 
@@ -395,7 +395,7 @@ export default function Home() {
               <span className="block text-primary">saisie comptable ?</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
-              Rejoignez des centaines d'experts-comptables qui économisent déjà 15-30 minutes par client chaque mois
+              Rejoignez des centaines d&apos;experts-comptables qui économisent déjà 15-30 minutes par client chaque mois
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="xl" asChild className="gradient-primary text-white border-0 shadow-2xl hover:shadow-primary/25 transition-all duration-300 w-full sm:w-auto">
@@ -421,7 +421,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-green-500" />
-                Aucun frais d'installation
+                Aucun frais d&apos;installation
               </div>
             </div>
           </div>
@@ -440,15 +440,15 @@ export default function Home() {
                 </div>
               </div>
               <span className="font-bold text-xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                InvoiceAI France
+                FacturePro France
               </span>
             </div>
             <div className="flex flex-col items-center gap-2 md:items-end">
               <p className="text-sm text-muted-foreground">
-                Solution IA française pour experts-comptables
+                Solution française pour experts-comptables
               </p>
               <p className="text-xs text-muted-foreground">
-                © 2024 InvoiceAI France. Tous droits réservés.
+                © 2024 FacturePro France. Tous droits réservés.
               </p>
             </div>
           </div>

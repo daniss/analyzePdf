@@ -34,9 +34,9 @@ export default function SignInPage() {
           <div className="flex justify-center mb-4">
             <FileText className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
+          <CardTitle className="text-2xl">Bon retour</CardTitle>
           <CardDescription>
-            Sign in to your InvoiceAI account
+            Connectez-vous à votre compte FacturePro
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -48,18 +48,18 @@ export default function SignInPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="name@example.com"
+                placeholder="nom@exemple.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
@@ -70,18 +70,18 @@ export default function SignInPage() {
             </div>
             <div className="flex items-center justify-between text-sm">
               <Link href="/auth/forgot-password" className="text-primary hover:underline">
-                Forgot password?
+                Mot de passe oublié ?
               </Link>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Connexion...' : 'Se connecter'}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
-              Don&apos;t have an account?{' '}
+              Vous n'avez pas de compte ?{' '}
               <Link href="/auth/signup" className="text-primary hover:underline">
-                Sign up
+                S'inscrire
               </Link>
             </p>
           </CardFooter>

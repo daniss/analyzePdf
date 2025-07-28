@@ -24,30 +24,167 @@ export interface LineItem {
   quantity: number
   unit_price: number
   total: number
+  tva_rate?: number
+  tva_amount?: number
+  unit?: string
+}
+
+export interface FrenchBusinessInfo {
+  name: string
+  address: string
+  postal_code?: string
+  city?: string
+  country: string
+  siren_number?: string
+  siret_number?: string
+  tva_number?: string
+  naf_code?: string
+  legal_form?: string
+  share_capital?: number
+  rcs_number?: string
+  rm_number?: string
+  phone?: string
+  email?: string
+}
+
+export interface SIRETValidationResult {
+  original_siret: string
+  cleaned_siret?: string
+  validation_status: string
+  blocking_level: string
+  compliance_risk: string
+  traffic_light_color: string
+  insee_company_name?: string
+  company_is_active?: boolean
+  name_similarity_score?: number
+  auto_correction_attempted: boolean
+  auto_correction_success: boolean
+  correction_details: string[]
+  error_message?: string
+  validation_warnings: string[]
+  french_error_message: string
+  french_guidance: string
+  recommended_actions: string[]
+  user_options: Array<{
+    action: string
+    label: string
+    description: string
+  }>
+  export_blocked: boolean
+  export_warnings: string[]
+  liability_warning_required: boolean
+  validation_record_id?: string
+}
+
+export interface SIRETValidationSummary {
+  vendor_siret_validation?: {
+    performed: boolean
+    status?: string
+    blocking_level?: string
+    compliance_risk?: string
+    traffic_light?: string
+    export_blocked?: boolean
+    french_error_message?: string
+    user_options_available?: boolean
+  }
+  customer_siret_validation?: {
+    performed: boolean
+    status?: string
+    blocking_level?: string
+    compliance_risk?: string
+    traffic_light?: string
+    export_blocked?: boolean
+    french_error_message?: string
+    user_options_available?: boolean
+  }
+  overall_summary?: {
+    any_siret_found: boolean
+    any_export_blocked: boolean
+    highest_risk: string
+    requires_user_action: boolean
+  }
+}
+
+export interface FrenchTVABreakdown {
+  rate: number
+  taxable_amount: number
+  tva_amount: number
 }
 
 export interface InvoiceData {
+  // Basic invoice information
   invoice_number?: string
   date?: string
+  due_date?: string
+  invoice_sequence_number?: number
+  
+  // Business entities (French format)
+  vendor?: FrenchBusinessInfo
+  customer?: FrenchBusinessInfo
+  
+  // Legacy fields for backward compatibility
   vendor_name?: string
   vendor_address?: string
   customer_name?: string
   customer_address?: string
+  
+  // Line items with French enhancements
   line_items: LineItem[]
-  subtotal?: number
-  tax?: number
-  total?: number
+  
+  // Financial information with French compliance
+  subtotal_ht?: number
+  tva_breakdown: FrenchTVABreakdown[]
+  total_tva?: number
+  total_ttc?: number
+  subtotal?: number  // Legacy
+  tax?: number       // Legacy
+  total?: number     // Legacy
   currency: string
+  
+  // French mandatory clauses
+  payment_terms?: string
+  late_payment_penalties?: string
+  recovery_fees?: string
+  
+  // Additional fields
+  notes?: string
+  delivery_date?: string
+  delivery_address?: string
+  
+  // Compliance
+  is_french_compliant?: boolean
+  compliance_errors?: string[]
 }
+
+export type InvoiceStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
+export interface FieldConfidence {
+  value: string | number | null | undefined
+  confidence: number
+  source: 'text' | 'ai' | 'manual'
+}
+
 
 export interface Invoice {
   id: string
   filename: string
-  status: 'processing' | 'completed' | 'failed'
+  status: InvoiceStatus
   created_at: string
   updated_at?: string
   data?: InvoiceData
+  confidence_data?: {
+    invoice_number?: FieldConfidence
+    date?: FieldConfidence
+    total?: FieldConfidence
+    vendor_name?: FieldConfidence
+    customer_name?: FieldConfidence
+    overall: number
+  }
+  siret_validation_results?: SIRETValidationSummary
   error_message?: string
+  review_status?: 'pending_review' | 'in_review' | 'reviewed' | 'approved' | 'rejected'
+  processing_source?: 'individual' | 'batch' | 'api'
+  batch_id?: string
 }
 
 export interface ApiError {

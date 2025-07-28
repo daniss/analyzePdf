@@ -3,7 +3,7 @@ Invoice CRUD operations with GDPR compliance and encryption
 """
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, delete, update
 from sqlalchemy.orm import selectinload
 from typing import Optional, List, Dict, Any
 import uuid
@@ -11,7 +11,7 @@ import json
 import hashlib
 from datetime import datetime
 
-from models.gdpr_models import Invoice, DataSubject, InvoiceDataSubject, AuditEventType
+from models.gdpr_models import Invoice, DataSubject, InvoiceDataSubject, AuditEventType, AuditLog
 from core.gdpr_helpers import encrypt_json_data, decrypt_json_data, log_audit_event
 
 
@@ -22,7 +22,9 @@ async def create_invoice(
     mime_type: str,
     data_controller_id: uuid.UUID,
     processing_purposes: List[str],
-    legal_basis: str = "legitimate_interest"
+    legal_basis: str = "legitimate_interest",
+    processing_source: str = "individual",
+    batch_id: Optional[str] = None
 ) -> Invoice:
     """Create new invoice with encrypted storage and audit logging"""
     try:
@@ -41,7 +43,9 @@ async def create_invoice(
             processing_purposes=processing_purposes,
             data_controller_id=data_controller_id,
             transferred_to_third_country=True,  # Claude API in US
-            transfer_mechanism="standard_contractual_clauses"
+            transfer_mechanism="standard_contractual_clauses",
+            processing_source=processing_source,
+            batch_id=batch_id
         )
         
         # Add to database
@@ -185,7 +189,8 @@ async def update_invoice_status(
     status: str,
     user_id: uuid.UUID,
     processing_started_at: Optional[datetime] = None,
-    processing_completed_at: Optional[datetime] = None
+    processing_completed_at: Optional[datetime] = None,
+    error_message: Optional[str] = None
 ) -> Optional[Invoice]:
     """Update invoice processing status with audit logging"""
     try:
@@ -209,6 +214,8 @@ async def update_invoice_status(
             invoice.processing_started_at = processing_started_at
         if processing_completed_at:
             invoice.processing_completed_at = processing_completed_at
+        if error_message:
+            invoice.error_message = error_message
         
         await log_audit_event(
             db=db,
@@ -268,6 +275,10 @@ async def store_extracted_data(
         invoice.extracted_data_encrypted = encrypted_data
         invoice.processing_status = "completed"
         invoice.processing_completed_at = datetime.utcnow()
+        
+        # Set review status for individual invoices
+        if hasattr(invoice, 'review_status') and not invoice.batch_id:
+            invoice.review_status = "pending_review"
         
         await log_audit_event(
             db=db,
@@ -377,9 +388,16 @@ async def delete_invoice(
         
         # Delete associated data subject relationships
         await db.execute(
-            select(InvoiceDataSubject).where(
+            delete(InvoiceDataSubject).where(
                 InvoiceDataSubject.invoice_id == invoice_id
             )
+        )
+        
+        # Update audit logs to set invoice_id to NULL before deletion to avoid foreign key violations
+        await db.execute(
+            update(AuditLog).where(
+                AuditLog.invoice_id == invoice_id
+            ).values(invoice_id=None)
         )
         
         # Delete the invoice
