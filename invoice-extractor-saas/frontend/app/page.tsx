@@ -18,7 +18,7 @@ export default function Home() {
                 </div>
               </div>
               <span className="font-bold text-xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                FacturePro France
+                ComptaFlow France
               </span>
             </Link>
           </div>
@@ -440,7 +440,7 @@ export default function Home() {
                 </div>
               </div>
               <span className="font-bold text-xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                FacturePro France
+                ComptaFlow France
               </span>
             </div>
             <div className="flex flex-col items-center gap-2 md:items-end">
@@ -448,7 +448,7 @@ export default function Home() {
                 Solution française pour experts-comptables
               </p>
               <p className="text-xs text-muted-foreground">
-                © 2024 FacturePro France. Tous droits réservés.
+                © 2024 ComptaFlow France. Tous droits réservés.
               </p>
             </div>
           </div>

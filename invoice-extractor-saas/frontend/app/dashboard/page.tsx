@@ -137,7 +137,7 @@ function DashboardPage() {
               </div>
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              FacturePro
+              ComptaFlow
             </h1>
           </div>
           <div className="ml-auto flex items-center gap-4">

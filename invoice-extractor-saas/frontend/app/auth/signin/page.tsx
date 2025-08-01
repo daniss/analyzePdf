@@ -36,7 +36,7 @@ export default function SignInPage() {
           </div>
           <CardTitle className="text-2xl">Bon retour</CardTitle>
           <CardDescription>
-            Connectez-vous à votre compte FacturePro
+            Connectez-vous à votre compte ComptaFlow
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

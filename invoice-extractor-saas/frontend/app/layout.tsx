@@ -8,7 +8,7 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "FacturePro - Extraction Intelligente de Données",
+  title: "ComptaFlow - Extraction Intelligente de Données",
   description: "Extraction de données structurées à partir de factures PDF. Traitement rapide, précis et fiable pour les entreprises modernes.",
 }
 
