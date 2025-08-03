@@ -1,23 +1,37 @@
 'use client'
 
+import { useState } from 'react'
 import { useAuth, withAuth } from '@/lib/auth-context'
 import { useInvoices, useDashboardStats } from '@/lib/hooks'
 import { ProgressiveInvoiceCard } from '@/components/invoice/progressive-invoice-card'
 import { BatchUpload } from '@/components/invoice/batch-upload'
 import { BulkExportSelector } from '@/components/invoice/bulk-export-selector'
+import { SubscriptionCard } from '@/components/subscription/subscription-card'
+import { WelcomeTour } from '@/components/onboarding/welcome-tour'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FileText, Download, DollarSign, Bot, Zap, TrendingUp, Clock, Loader2, X } from 'lucide-react'
+import { Invoice } from '@/lib/types'
 import toast from 'react-hot-toast'
 
 function DashboardPage() {
-  const { user, logout } = useAuth()
+  const { user, logout, refreshUser } = useAuth()
   const { data: invoices = [], isLoading, error, refetch } = useInvoices()
   const { data: statsData } = useDashboardStats()
+  const [showWelcomeTour, setShowWelcomeTour] = useState(false)
 
   const handleUpload = () => {
     // Refetch invoices to get the latest data
     refetch()
+    // Refresh user data to update subscription quotas
+    refreshUser()
+  }
+
+  const handleInvoiceUpdate = (updatedInvoice: Invoice) => {
+    // Refetch invoices after any invoice update
+    refetch()
+    // Refresh user data to update subscription quotas
+    refreshUser()
   }
 
   const handleApproveAll = async () => {
@@ -160,10 +174,17 @@ function DashboardPage() {
 
       <main className="container py-8">
         {/* Welcome Section */}
-        <div className="mb-12">
+        <div className="mb-8">
           <h2 className="text-3xl font-bold mb-2">Bon retour !</h2>
           <p className="text-lg text-muted-foreground">Transformez vos factures avec l'extraction intelligente</p>
         </div>
+
+        {/* Subscription Status */}
+        {user?.subscription && (
+          <div className="mb-8">
+            <SubscriptionCard subscription={user.subscription} />
+          </div>
+        )}
 
 
         {/* Compact Stats */}
@@ -204,10 +225,10 @@ function DashboardPage() {
                 <div className="text-lg font-bold">
                   {statsData?.average_processing_time 
                     ? `${statsData.average_processing_time.toFixed(1)}s`
-                    : '~10s'
+                    : '—'
                   }
                 </div>
-                <div className="text-xs text-muted-foreground">Moyenne</div>
+                <div className="text-xs text-muted-foreground">Temps Moyen</div>
               </div>
               <Zap className="h-4 w-4 text-orange-600" />
             </div>
@@ -219,10 +240,10 @@ function DashboardPage() {
                 <div className="text-lg font-bold">
                   {statsData?.time_savings_percentage 
                     ? `${statsData.time_savings_percentage}%`
-                    : '~85%'
+                    : '—'
                   }
                 </div>
-                <div className="text-xs text-muted-foreground">Économies</div>
+                <div className="text-xs text-muted-foreground">Gain de Temps</div>
               </div>
               <TrendingUp className="h-4 w-4 text-purple-600" />
             </div>
@@ -323,9 +344,7 @@ function DashboardPage() {
                       <ProgressiveInvoiceCard
                         key={invoice.id}
                         invoice={invoice}
-                        onUpdate={() => {
-                          refetch()
-                        }}
+                        onUpdate={handleInvoiceUpdate}
                         expanded={false}
                       />
                     ))}
@@ -390,9 +409,7 @@ function DashboardPage() {
                       <div key={invoice.id} className="relative">
                         <ProgressiveInvoiceCard
                           invoice={invoice}
-                          onUpdate={() => {
-                            refetch()
-                          }}
+                          onUpdate={handleInvoiceUpdate}
                           expanded={false}
                           showReviewButton={false}
                         />
@@ -432,6 +449,9 @@ function DashboardPage() {
           Traitement automatique • 7 formats d'export disponibles
         </div>
       </main>
+      
+      {/* Welcome Tour for new users */}
+      <WelcomeTour onComplete={() => setShowWelcomeTour(false)} />
     </div>
   )
 }

@@ -58,7 +58,7 @@ class GDPRTransferCompliance:
     def __init__(self):
         self.scc_version = "2021/914/EU"  # Current EU SCCs
         self.recipient_country = "US"
-        self.recipient_organization = "Anthropic PBC"
+        self.recipient_organization = "AI Service Provider"
         self.transfer_mechanism = TransferMechanism.STANDARD_CONTRACTUAL_CLAUSES
         
     async def assess_transfer_risk(
@@ -354,7 +354,7 @@ class GDPRTransferCompliance:
         try:
             # Check required SCC elements
             compliance_checks = {
-                "module_two_controller_processor": True,  # InvoiceAI -> Anthropic
+                "module_two_controller_processor": True,  # ComptaFlow -> AI Service
                 "appropriate_safeguards": True,  # Technical and organizational measures
                 "enforceable_rights": True,  # Data subject rights provisions
                 "effective_remedies": True,  # Legal remedies available

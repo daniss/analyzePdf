@@ -6,16 +6,44 @@ from typing import Optional
 import jwt as pyjwt
 
 from core.config import settings
-from schemas.auth import UserCreate, UserResponse, Token
+from schemas.auth import UserCreate, UserResponse, Token, SubscriptionInfo
 from models.user import User
+from models.subscription import Subscription
 from core.database import get_db
 from core.security import verify_password, get_password_hash
 from crud.user import (
     create_user, get_user_by_email, get_user_by_id, authenticate_user
 )
+from core.quota_manager import QuotaManager
+from sqlalchemy.orm import selectinload
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
+
+
+async def user_to_response(user: User, db: AsyncSession) -> UserResponse:
+    """Convert User model to UserResponse with subscription info"""
+    subscription_info = None
+    if user.subscription:
+        # Get accurate usage count from quota manager
+        quota_status = await QuotaManager.get_quota_status(db, user.id)
+        
+        subscription_info = SubscriptionInfo(
+            pricing_tier=user.subscription.pricing_tier,
+            status=user.subscription.status,
+            monthly_invoice_limit=user.subscription.monthly_invoice_limit,
+            monthly_invoices_processed=quota_status.get('current_usage', 0),
+            current_period_end=user.subscription.current_period_end
+        )
+    
+    return UserResponse(
+        id=str(user.id),
+        email=user.email,
+        is_active=user.is_active,
+        created_at=user.created_at,
+        company_name=user.company_name,
+        subscription=subscription_info
+    )
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -65,13 +93,7 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
         # Create new user
         db_user = await create_user(db, user)
         
-        return UserResponse(
-            id=str(db_user.id),
-            email=db_user.email,
-            is_active=db_user.is_active,
-            created_at=db_user.created_at,
-            company_name=db_user.company_name
-        )
+        return await user_to_response(db_user, db)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -115,11 +137,15 @@ async def refresh_access_token(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/me", response_model=UserResponse)
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return UserResponse(
-        id=str(current_user.id),
-        email=current_user.email,
-        is_active=current_user.is_active,
-        created_at=current_user.created_at,
-        company_name=current_user.company_name
-    )
+async def read_users_me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    return await user_to_response(current_user, db)
+
+
+@router.get("/quota-status")
+async def get_quota_status(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get current quota status for authenticated user"""
+    quota_status = await QuotaManager.get_quota_status(db, current_user.id)
+    return quota_status

@@ -59,6 +59,11 @@ class Settings(BaseSettings):
     # GDPR and Encryption
     ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "your-32-byte-encryption-key-change-this!")
     
+    # Stripe Payment Processing
+    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

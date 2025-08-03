@@ -18,5 +18,5 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationships
-    # cost_entries = relationship("CostTracking", back_populates="user")  # Removed to fix import issues
+    # Relationships  
+    subscription = relationship("Subscription", back_populates="user", uselist=False)

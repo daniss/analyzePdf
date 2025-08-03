@@ -40,9 +40,13 @@ class ApiClient {
 
       let errorMessage = 'An error occurred'
       try {
-        const errorData: ApiError = await response.json()
-        errorMessage = errorData.detail || errorMessage
-      } catch {
+        const errorData: any = await response.json()
+        console.log('🔍 Error response data:', JSON.stringify(errorData, null, 2))
+        // Handle multiple formats: {detail: ...}, {message: ...}, {error: {message: ...}}
+        errorMessage = errorData.detail || errorData.message || errorData.error?.message || errorMessage
+        console.log('📝 Extracted error message:', errorMessage)
+      } catch (parseError) {
+        console.log('❌ Failed to parse error JSON:', parseError)
         // If JSON parsing fails, use default message
       }
       
@@ -249,7 +253,7 @@ class ApiClient {
   }
 
   // Batch processing methods
-  async post(endpoint: string, data: any, config?: RequestInit): Promise<any> {
+  async post(endpoint: string, data: any, config?: RequestInit & { responseType?: 'blob' | 'json' }): Promise<any> {
     const url = `${this.baseURL}${endpoint}`
     const requestStartTime = Date.now()
     
@@ -261,8 +265,8 @@ class ApiClient {
     }
     
     // Only add Content-Type for non-FormData requests
-    if (!isFormData && !headers['Content-Type']) {
-      headers['Content-Type'] = 'application/json'
+    if (!isFormData && !(headers as Record<string, string>)['Content-Type']) {
+      (headers as Record<string, string>)['Content-Type'] = 'application/json'
     }
     
     const requestConfig: RequestInit = {
@@ -284,8 +288,8 @@ class ApiClient {
           fileSize: value instanceof File ? value.size : undefined,
           fileType: value instanceof File ? value.type : undefined
         })),
-        hasAuthToken: !!headers['Authorization'],
-        authTokenPrefix: headers['Authorization']?.substring(0, 20),
+        hasAuthToken: !!(headers as Record<string, string>)['Authorization'],
+        authTokenPrefix: (headers as Record<string, string>)['Authorization']?.substring(0, 20),
         userAgent: navigator.userAgent,
         origin: window.location.origin,
         currentUrl: window.location.href
@@ -303,7 +307,7 @@ class ApiClient {
       console.log('🌐 Making fetch request:', {
         url,
         method: requestConfig.method,
-        hasAuth: !!requestConfig.headers?.Authorization,
+        hasAuth: !!(requestConfig.headers as Record<string, string>)?.Authorization,
         isFormData,
         bodyType: data instanceof FormData ? 'FormData' : typeof data,
         timestamp: new Date().toISOString(),
@@ -369,7 +373,7 @@ class ApiClient {
     const response = await fetch(url, requestConfig)
     
     // Handle blob responses
-    if (config?.responseType === 'blob') {
+    if ((config as any)?.responseType === 'blob') {
       if (!response.ok) {
         const errorData: ApiError = await response.json()
         throw new Error(errorData.detail || 'Request failed')

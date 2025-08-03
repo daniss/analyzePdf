@@ -10,6 +10,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { apiClient } from '@/lib/api'
 
+// Helper function to format file size
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 o'
+  
+  const k = 1024
+  const sizes = ['o', 'Ko', 'Mo', 'Go']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  
+  if (i === 0) {
+    return `${bytes} ${sizes[i]}`
+  }
+  
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
+}
+
 interface BatchUploadProps {
   onComplete?: () => void
 }
@@ -213,6 +228,9 @@ export function BatchUpload({ onComplete }: BatchUploadProps) {
         alert('Le traitement a pris trop de temps. Veuillez réessayer avec moins de fichiers.')
       } else if (error.message?.includes('401')) {
         alert('Session expirée. Veuillez vous reconnecter.')
+      } else if (error.message?.includes('Quota') || error.message?.includes('quota') || error.message?.includes('épuisé')) {
+        // Quota exceeded error - show the specific message from backend
+        alert(error.message)
       } else {
         alert('Erreur lors du traitement. Veuillez réessayer.')
       }
@@ -343,7 +361,7 @@ Téléverser Plusieurs Fichiers
                       <FileText className="h-4 w-4 text-gray-500" />
                       <span className="text-sm font-medium">{fileItem.file.name}</span>
                       <Badge variant="secondary" className="text-xs">
-                        {(fileItem.file.size / 1024 / 1024).toFixed(1)} MB
+                        {formatFileSize(fileItem.file.size)}
                       </Badge>
                     </div>
                     {!isProcessing && (

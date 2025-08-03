@@ -364,6 +364,18 @@ NOT: vendor.name = "CARREFOUR FRANCE BOUYGUES CONSTRUCTION"
    - If tax amounts are missing, calculate them from rates and subtotals
    - Common French tax rates: 20%, 10%, 5.5%, 2.1%
 
+6. PAYMENT INFORMATION:
+   - Payment terms (délai de paiement)
+   - Payment method (moyen de paiement: virement, chèque, espèces, etc.)
+   - Bank details/IBAN/RIB (coordonnées bancaires)
+   - Due date (date d'échéance)
+
+7. ADDITIONAL BUSINESS CONTEXT:
+   - Order number (numéro de commande)
+   - Project reference (référence projet)
+   - Contract number (numéro de contrat)
+   - Delivery information
+
 Return ONLY this JSON structure:
 {
     "invoice_number": "string",
@@ -419,7 +431,15 @@ Return ONLY this JSON structure:
     "total_tax": number,
     "total": number,
     "currency": "string",
-    "payment_terms": "string or null"
+    "payment_terms": "string or null",
+    "payment_method": "string or null",
+    "bank_details": "string or null",
+    "order_number": "string or null",
+    "project_reference": "string or null",
+    "contract_number": "string or null",
+    "delivery_date": "YYYY-MM-DD or null",
+    "delivery_address": "string or null",
+    "notes": "string or null"
 }"""
 
     def _parse_llama_response(self, response_text: str) -> InvoiceData:
@@ -725,7 +745,19 @@ Return ONLY this JSON structure:
                 
                 # Currency and payment
                 currency=data.get('currency', 'EUR'),
-                payment_terms=data.get('payment_terms')
+                payment_terms=data.get('payment_terms'),
+                payment_method=data.get('payment_method'),
+                bank_details=data.get('bank_details'),
+                
+                # Business context
+                order_number=data.get('order_number'),
+                project_reference=data.get('project_reference'),
+                contract_number=data.get('contract_number'),
+                
+                # Additional fields
+                delivery_date=data.get('delivery_date'),
+                delivery_address=data.get('delivery_address'),
+                notes=data.get('notes')
             )
             
             return invoice_data

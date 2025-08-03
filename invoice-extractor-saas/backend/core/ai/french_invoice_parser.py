@@ -76,11 +76,11 @@ class FrenchInvoiceParser:
     
     def enhance_extracted_data(self, invoice_data: InvoiceData, raw_text: str) -> InvoiceData:
         """
-        Enhance Claude-extracted data with French-specific parsing improvements
+        Enhance AI-extracted data with French-specific parsing improvements
         
         Args:
-            invoice_data: Initial extraction from Claude
-            raw_text: Raw text from OCR or Claude processing
+            invoice_data: Initial extraction from AI processing
+            raw_text: Raw text from OCR or AI processing
             
         Returns:
             Enhanced InvoiceData with improved French parsing

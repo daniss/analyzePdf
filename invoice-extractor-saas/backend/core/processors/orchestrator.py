@@ -17,8 +17,8 @@ from fastapi import WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.processors.tier1_processor import Tier1Processor, Tier1Result
-from core.processors.tier2_processor import Tier2Processor, Tier2Result
-from core.ai.claude_processor import ClaudeProcessor
+# Tier2 processor removed - used Claude/Anthropic
+# Claude processor removed - using Groq only
 from core.pdf_processor import PDFProcessor
 from crud.invoice import update_invoice_status, store_extracted_data
 from schemas.invoice import InvoiceData
@@ -81,8 +81,8 @@ class ProcessingOrchestrator:
     
     def __init__(self):
         self.tier1_processor = Tier1Processor()
-        self.tier2_processor = Tier2Processor()
-        self.claude_processor = ClaudeProcessor()
+        # Tier2 processor removed - used Claude/Anthropic
+        # Claude processor removed - using Groq only
         self.active_connections: Dict[str, WebSocket] = {}
         
     async def process_invoice(
@@ -347,11 +347,9 @@ class ProcessingOrchestrator:
                 file_path.split('/')[-1]
             )
             
-            # Process with Claude
-            invoice_data = await self.claude_processor.process_invoice_images(
-                base64_images,
-                invoice_id=invoice_id,
-                user_id=str(user_id),
+            # Claude processing removed - using Groq only
+            # TODO: Add Groq-only processing logic here
+            raise NotImplementedError("Claude processor removed - implement Groq-only processing")
                 db=db
             )
             

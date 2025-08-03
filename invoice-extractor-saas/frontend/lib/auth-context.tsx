@@ -13,6 +13,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, companyName?: string) => Promise<void>
   logout: () => void
+  refreshUser: () => Promise<void>
   isAuthenticated: boolean
 }
 
@@ -111,6 +112,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/auth/signin')
   }
 
+  const refreshUser = async () => {
+    try {
+      if (apiClient.isAuthenticated()) {
+        const currentUser = await apiClient.getCurrentUser()
+        setUser(currentUser)
+        // Update user in cookie
+        Cookies.set('user', JSON.stringify(currentUser), { expires: 7 })
+      }
+    } catch (error) {
+      console.error('Failed to refresh user data:', error)
+      // If refresh fails, user might be logged out
+      if (error instanceof Error && error.message.includes('401')) {
+        logout()
+      }
+    }
+  }
+
   const value = {
     user,
     loading,
@@ -118,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     register,
     logout,
+    refreshUser,
     isAuthenticated: !!user
   }
 
@@ -150,8 +169,11 @@ export function withAuth<T extends object>(Component: React.ComponentType<T>) {
 
     if (loading) {
       return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <div className="min-h-screen flex items-center justify-center bg-background gradient-mesh">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Vérification de l'authentification...</p>
+          </div>
         </div>
       )
     }

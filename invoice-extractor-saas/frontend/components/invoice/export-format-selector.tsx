@@ -145,7 +145,8 @@ export function ExportFormatSelector({ invoiceId, onExportComplete }: ExportForm
 
     } catch (error) {
       console.error('Export failed:', error)
-      alert(`Erreur d'export ${format.name}: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Export failed'
+      alert(`Erreur d'export ${format.name}: ${errorMessage}`)
       if (onExportComplete) {
         onExportComplete(format.id, false)
       }

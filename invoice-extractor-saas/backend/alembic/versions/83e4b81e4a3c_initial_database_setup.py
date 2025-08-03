@@ -43,7 +43,6 @@ def upgrade() -> None:
     sa.Column('total_cost_usd', sa.Float(), nullable=True),
     sa.Column('total_cost_eur', sa.Float(), nullable=True),
     sa.Column('groq_cost_eur', sa.Float(), nullable=True),
-    sa.Column('claude_cost_eur', sa.Float(), nullable=True),
     sa.Column('single_invoice_cost', sa.Float(), nullable=True),
     sa.Column('batch_processing_cost', sa.Float(), nullable=True),
     sa.Column('active_users_count', sa.Integer(), nullable=True),

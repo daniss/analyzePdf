@@ -47,8 +47,10 @@ export function useDeleteInvoice() {
 // Export hooks
 export function useExportInvoicesCSV() {
   return useMutation({
-    mutationFn: () => apiClient.exportInvoicesCSV(),
-    onSuccess: (blob) => {
+    mutationFn: () => {
+      throw new Error('Export all invoices not implemented yet')
+    },
+    onSuccess: (blob: Blob) => {
       // Trigger download
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -64,8 +66,10 @@ export function useExportInvoicesCSV() {
 
 export function useExportInvoicesJSON() {
   return useMutation({
-    mutationFn: () => apiClient.exportInvoicesJSON(),
-    onSuccess: (blob) => {
+    mutationFn: () => {
+      throw new Error('Export all invoices not implemented yet')
+    },
+    onSuccess: (blob: Blob) => {
       // Trigger download
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -125,8 +129,8 @@ export function useDashboardStats() {
   )
   
   const processingTimes = completedInvoices.map(inv => {
-    const startTime = new Date(inv.processing_started_at).getTime()
-    const endTime = new Date(inv.processing_completed_at).getTime()
+    const startTime = new Date(inv.processing_started_at || '').getTime()
+    const endTime = new Date(inv.processing_completed_at || '').getTime()
     return (endTime - startTime) / 1000 // Convert to seconds
   })
   

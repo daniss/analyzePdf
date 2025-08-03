@@ -151,7 +151,7 @@ class Invoice(Base):
     retention_status = Column(SQLEnum(RetentionStatus), default=RetentionStatus.ACTIVE)
     
     # Cross-border transfer tracking
-    transferred_to_third_country = Column(Boolean, default=True)  # Claude API in US
+    transferred_to_third_country = Column(Boolean, default=True)  # AI API processing
     transfer_mechanism = Column(String(50), default="standard_contractual_clauses")
     transfer_risk_assessment_id = Column(UUID(as_uuid=True), ForeignKey("transfer_assessments.id"))
     
@@ -227,7 +227,7 @@ class RetentionPolicy(Base):
 class TransferRiskAssessment(Base):
     """
     Transfer risk assessments for third country transfers (GDPR Article 44-49)
-    Required for Claude API transfers to US
+    Required for AI API processing in third countries
     """
     __tablename__ = "transfer_assessments"
     
@@ -235,7 +235,7 @@ class TransferRiskAssessment(Base):
     
     # Transfer details
     recipient_country = Column(String(2), nullable=False, default="US")
-    recipient_organization = Column(String(100), nullable=False, default="Anthropic PBC")
+    recipient_organization = Column(String(100), nullable=False, default="AI Service Provider")
     transfer_mechanism = Column(String(50), nullable=False)  # SCCs, adequacy_decision, etc.
     
     # Risk assessment
@@ -288,7 +288,7 @@ class AuditLog(Base):
     data_categories_accessed = Column(JSON, nullable=True)
     
     # Technical details
-    system_component = Column(String(50), nullable=False)  # api, claude_processor, etc.
+    system_component = Column(String(50), nullable=False)  # api, groq_processor, etc.
     operation_details = Column(JSON, nullable=True)  # Operation-specific metadata
     
     # Risk and compliance

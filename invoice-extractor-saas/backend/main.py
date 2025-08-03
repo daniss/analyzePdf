@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import PlainTextResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from contextlib import asynccontextmanager
 import uvicorn
 
-from api import auth, invoices, export_routes, gdpr_rights, batch_processing, admin_costs, pcg_routes, validation_reports, auto_correction_routes, siret_validation_routes
+from api import auth, invoices, export_routes, gdpr_rights, batch_processing, admin_costs, pcg_routes, validation_reports, auto_correction_routes, siret_validation_routes, admin, payments
+from core.monitoring import get_health_status, get_metrics
 from core.config import settings
 from core.exceptions import (
     ComptaFlowException, comptaflow_exception_handler,
@@ -54,11 +56,13 @@ app.include_router(batch_processing.router, prefix="/api/batch", tags=["batch-pr
 app.include_router(export_routes.router, prefix="/api/exports", tags=["exports"])
 # app.include_router(gdpr_compliance.router, prefix="/api", tags=["gdpr-compliance"])
 app.include_router(gdpr_rights.router, prefix="/api", tags=["gdpr-rights"])
-app.include_router(admin_costs.router, prefix="/api/admin", tags=["admin-costs"])
+app.include_router(admin_costs.router, prefix="/api/admin/costs", tags=["admin-costs"])
+app.include_router(admin.router, prefix="/api/admin/system", tags=["admin-system"])
 app.include_router(pcg_routes.router, tags=["plan-comptable-general"])
 app.include_router(validation_reports.router, tags=["validation-reports"])
 app.include_router(auto_correction_routes.router, tags=["auto-correction"])
 app.include_router(siret_validation_routes.router, prefix="/api/siret", tags=["siret-validation"])
+app.include_router(payments.router, prefix="/api/payments", tags=["payments"])
 
 # Register exception handlers
 app.add_exception_handler(ComptaFlowException, comptaflow_exception_handler)
@@ -76,6 +80,19 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/health/detailed")
+async def detailed_health_check():
+    """Detailed health check for monitoring systems"""
+    return await get_health_status()
+
+
+@app.get("/metrics", response_class=PlainTextResponse)
+async def metrics():
+    """Prometheus-style metrics endpoint"""
+    metrics_text = await get_metrics()
+    return PlainTextResponse(content=metrics_text, media_type="text/plain")
 
 
 if __name__ == "__main__":

@@ -309,7 +309,7 @@ class FileEncryption:
 
 class TransitEncryption:
     """
-    Encryption for data in transit to third countries (Claude API)
+    Encryption for data in transit to third countries (AI API)
     Implements additional safeguards for international transfers
     """
     
@@ -318,7 +318,7 @@ class TransitEncryption:
     
     def prepare_for_transfer(self, invoice_data: Dict[str, Any], transfer_purpose: str) -> Dict[str, Any]:
         """
-        Prepare invoice data for secure transfer to Claude API
+        Prepare invoice data for secure transfer to AI API
         Implements data minimization and pseudonymization
         
         Args:
@@ -336,7 +336,7 @@ class TransitEncryption:
             transfer_metadata = {
                 "transfer_purpose": transfer_purpose,
                 "recipient_country": "US",
-                "recipient_organization": "Anthropic PBC",
+                "recipient_organization": "AI Service Provider",
                 "transfer_mechanism": "standard_contractual_clauses",
                 "data_minimization_applied": True,
                 "transfer_timestamp": datetime.utcnow().isoformat(),

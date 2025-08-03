@@ -40,7 +40,7 @@ class InvoiceFieldEdit(Base):
     
     # AI confidence and source
     ai_confidence = Column(Integer, nullable=True)    # 0-100 confidence score
-    ai_source = Column(String(50), nullable=True)     # "groq", "claude", "ocr", etc.
+    ai_source = Column(String(50), nullable=True)     # "groq", "ocr", etc.
     
     # Change metadata
     change_reason = Column(String(100), nullable=True)  # "accuracy_correction", "compliance_fix", "data_entry_error"

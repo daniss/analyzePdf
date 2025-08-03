@@ -1,11 +1,20 @@
 // Types matching backend schemas
 
+export interface SubscriptionInfo {
+  pricing_tier: 'FREE' | 'PRO' | 'BUSINESS' | 'ENTERPRISE'
+  status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'TRIALING' | 'INCOMPLETE'
+  monthly_invoice_limit: number
+  monthly_invoices_processed: number
+  current_period_end?: string
+}
+
 export interface User {
   id: string
   email: string
   is_active: boolean
   created_at: string
   company_name?: string
+  subscription?: SubscriptionInfo
 }
 
 export interface UserCreate {
@@ -158,6 +167,8 @@ export interface InvoiceData {
 
 export type InvoiceStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
+export type ProcessingMode = 'auto' | 'fast' | 'detailed'
+
 export interface FieldConfidence {
   value: string | number | null | undefined
   confidence: number
@@ -178,8 +189,19 @@ export interface Invoice {
     invoice_number?: FieldConfidence
     date?: FieldConfidence
     total?: FieldConfidence
+    subtotal_ht?: FieldConfidence
+    subtotal?: FieldConfidence
+    total_tva?: FieldConfidence
+    tax?: FieldConfidence
+    total_ttc?: FieldConfidence
     vendor_name?: FieldConfidence
     customer_name?: FieldConfidence
+    vendor_siren?: FieldConfidence
+    vendor_siret?: FieldConfidence
+    vendor_tva?: FieldConfidence
+    customer_siren?: FieldConfidence
+    customer_siret?: FieldConfidence
+    customer_tva?: FieldConfidence
     overall: number
   }
   siret_validation_results?: SIRETValidationSummary

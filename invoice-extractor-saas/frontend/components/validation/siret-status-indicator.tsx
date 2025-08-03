@@ -129,7 +129,7 @@ export function SIRETStatusIndicator({
           <span className="text-sm font-medium">{getStatusText()}</span>
           <Badge variant={getStatusBadgeVariant()} className="text-xs">
             <Shield className="h-3 w-3 mr-1" />
-            {translateRisk(overall.highest_risk)}
+            {translateRisk(overall.highest_risk || '')}
           </Badge>
         </div>
         
@@ -154,7 +154,7 @@ export function SIRETStatusIndicator({
               {vendor.traffic_light === 'green' && <CheckCircle className="h-3 w-3 text-green-500" />}
               {vendor.traffic_light === 'orange' && <AlertTriangle className="h-3 w-3 text-orange-500" />}
               {vendor.traffic_light === 'red' && <XCircle className="h-3 w-3 text-red-500" />}
-              <span>{translateStatus(vendor.status)}</span>
+              <span>{translateStatus(vendor.status || '')}</span>
               {vendor.export_blocked && (
                 <Badge variant="destructive" className="text-xs ml-1">Bloqué</Badge>
               )}
@@ -169,7 +169,7 @@ export function SIRETStatusIndicator({
               {customer.traffic_light === 'green' && <CheckCircle className="h-3 w-3 text-green-500" />}
               {customer.traffic_light === 'orange' && <AlertTriangle className="h-3 w-3 text-orange-500" />}
               {customer.traffic_light === 'red' && <XCircle className="h-3 w-3 text-red-500" />}
-              <span>{translateStatus(customer.status)}</span>
+              <span>{translateStatus(customer.status || '')}</span>
               {customer.export_blocked && (
                 <Badge variant="destructive" className="text-xs ml-1">Bloqué</Badge>
               )}
@@ -204,9 +204,9 @@ export function SIRETStatusIndicator({
               <div>
                 <h5 className="text-xs font-medium text-gray-700 mb-1">Fournisseur</h5>
                 <div className="text-xs text-gray-600 space-y-1">
-                  <div>Statut: <span className="font-medium">{translateStatus(vendor.status)}</span></div>
-                  <div>Niveau de blocage: <span className="font-medium">{translateBlockingLevel(vendor.blocking_level)}</span></div>
-                  <div>Risque: <span className="font-medium">{translateRisk(vendor.compliance_risk)}</span></div>
+                  <div>Statut: <span className="font-medium">{translateStatus(vendor.status || '')}</span></div>
+                  <div>Niveau de blocage: <span className="font-medium">{translateBlockingLevel(vendor.blocking_level || '')}</span></div>
+                  <div>Risque: <span className="font-medium">{translateRisk(vendor.compliance_risk || '')}</span></div>
                   {vendor.french_error_message && (
                     <div className="text-red-600">⚠️ {vendor.french_error_message}</div>
                   )}
@@ -221,9 +221,9 @@ export function SIRETStatusIndicator({
               <div>
                 <h5 className="text-xs font-medium text-gray-700 mb-1">Client</h5>
                 <div className="text-xs text-gray-600 space-y-1">
-                  <div>Statut: <span className="font-medium">{translateStatus(customer.status)}</span></div>
-                  <div>Niveau de blocage: <span className="font-medium">{translateBlockingLevel(customer.blocking_level)}</span></div>
-                  <div>Risque: <span className="font-medium">{translateRisk(customer.compliance_risk)}</span></div>
+                  <div>Statut: <span className="font-medium">{translateStatus(customer.status || '')}</span></div>
+                  <div>Niveau de blocage: <span className="font-medium">{translateBlockingLevel(customer.blocking_level || '')}</span></div>
+                  <div>Risque: <span className="font-medium">{translateRisk(customer.compliance_risk || '')}</span></div>
                   {customer.french_error_message && (
                     <div className="text-red-600">⚠️ {customer.french_error_message}</div>
                   )}

@@ -289,7 +289,8 @@ export function ProgressiveInvoiceCard({ invoice, onUpdate, expanded: initialExp
 
     } catch (error) {
       console.error('Export failed:', error)
-      alert(`Erreur d'export: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Export failed'
+      alert(`Erreur d'export: ${errorMessage}`)
     }
   }
 
@@ -517,7 +518,7 @@ export function ProgressiveInvoiceCard({ invoice, onUpdate, expanded: initialExp
               
               <EditableField
                 label="N° SIREN Fournisseur"
-                value={localInvoice.data?.vendor?.siren_number || localInvoice.data?.vendor?.siren || localInvoice.data?.vendor_siren}
+                value={localInvoice.data?.vendor?.siren_number}
                 confidence={localInvoice.confidence_data?.vendor_siren}
                 field="vendor_siren"
                 invoiceId={localInvoice.id}
@@ -527,7 +528,7 @@ export function ProgressiveInvoiceCard({ invoice, onUpdate, expanded: initialExp
               
               <EditableField
                 label="N° SIRET Fournisseur"
-                value={localInvoice.data?.vendor?.siret_number || localInvoice.data?.vendor?.siret || localInvoice.data?.vendor_siret}
+                value={localInvoice.data?.vendor?.siret_number}
                 confidence={localInvoice.confidence_data?.vendor_siret}
                 field="vendor_siret"
                 invoiceId={localInvoice.id}
@@ -576,7 +577,7 @@ export function ProgressiveInvoiceCard({ invoice, onUpdate, expanded: initialExp
               
               <EditableField
                 label="N° TVA Intracommunautaire"
-                value={localInvoice.data?.vendor?.tva_number || localInvoice.data?.vendor_tva}
+                value={localInvoice.data?.vendor?.tva_number}
                 confidence={localInvoice.confidence_data?.vendor_tva}
                 field="vendor_tva"
                 invoiceId={localInvoice.id}
@@ -586,7 +587,7 @@ export function ProgressiveInvoiceCard({ invoice, onUpdate, expanded: initialExp
               
               <EditableField
                 label="N° SIREN Client"
-                value={localInvoice.data?.customer?.siren_number || localInvoice.data?.customer?.siren || localInvoice.data?.customer_siren}
+                value={localInvoice.data?.customer?.siren_number}
                 confidence={localInvoice.confidence_data?.customer_siren}
                 field="customer_siren"
                 invoiceId={localInvoice.id}

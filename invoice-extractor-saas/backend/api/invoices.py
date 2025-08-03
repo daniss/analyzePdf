@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 import uuid
@@ -21,6 +21,8 @@ from crud.invoice import (
     update_invoice_status, store_extracted_data, delete_invoice,
     get_extracted_data
 )
+from core.quota_manager import QuotaManager, enforce_quota_limit
+from core.rate_limiter import invoice_upload_rate_limit_middleware
 
 # Simplified: Single processing mode for all invoices
 
@@ -106,10 +108,17 @@ async def check_health():
 @router.post("/upload", response_model=InvoiceResponse)
 async def upload_invoice(
     background_tasks: BackgroundTasks,
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Apply rate limiting
+    await invoice_upload_rate_limit_middleware(request)
+    
+    # Check quota limits
+    quota_info = await enforce_quota_limit(db, current_user.id)
+    
     # Validate file type
     if file.content_type not in settings.ALLOWED_FILE_TYPES:
         raise HTTPException(status_code=400, detail="Invalid file type")
@@ -159,6 +168,20 @@ async def upload_invoice(
             current_user.id
         )
         print(f"📋 Background task added successfully for invoice {db_invoice.id}")
+        
+        # IMMEDIATE quota recording - no waiting for background tasks
+        try:
+            from core.quota_manager import QuotaManager
+            from decimal import Decimal
+            await QuotaManager.record_invoice_usage(
+                db=db,
+                user_id=current_user.id,
+                invoice_id=db_invoice.id,
+                cost_eur=Decimal("0.002")
+            )
+            print(f"✅ IMMEDIATE quota recorded for invoice {db_invoice.id}")
+        except Exception as quota_error:
+            print(f"❌ Failed immediate quota recording: {quota_error}")
         
         return invoice_response
         
@@ -288,6 +311,21 @@ async def process_invoice_task_memory(invoice_id: str, file_content: bytes, file
                     user_id=user_id,
                     processing_completed_at=datetime.utcnow()
                 )
+                
+                # Record quota usage for successful processing
+                try:
+                    from core.quota_manager import QuotaManager
+                    from decimal import Decimal
+                    await QuotaManager.record_invoice_usage(
+                        db=db,
+                        user_id=user_id,
+                        invoice_id=uuid.UUID(invoice_id),
+                        cost_eur=Decimal("0.002")  # Estimate for Groq processing cost
+                    )
+                    logger.info(f"📊 Quota usage recorded for invoice {invoice_id}")
+                except Exception as quota_error:
+                    logger.warning(f"Failed to record quota usage for invoice {invoice_id}: {quota_error}")
+                    # Don't fail the processing if quota recording fails
                 
                 logger.info(f"✅ Successfully processed invoice {invoice_id} using GDPR-compliant memory processing")
                 

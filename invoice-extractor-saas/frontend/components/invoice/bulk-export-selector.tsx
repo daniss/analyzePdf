@@ -161,7 +161,8 @@ export function BulkExportSelector({ invoiceIds, onExportComplete, disabled = fa
 
     } catch (error) {
       console.error('Bulk export failed:', error)
-      alert(`Erreur d'export en lot ${format.name}: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Export failed'
+      alert(`Erreur d'export en lot ${format.name}: ${errorMessage}`)
       if (onExportComplete) {
         onExportComplete(format.id, false)
       }

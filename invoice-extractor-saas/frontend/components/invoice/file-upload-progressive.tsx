@@ -11,6 +11,21 @@ import { cn } from '@/lib/utils'
 import { apiClient } from '@/lib/api'
 import { Invoice } from '@/lib/types'
 
+// Helper function to format file size
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 o'
+  
+  const k = 1024
+  const sizes = ['o', 'Ko', 'Mo', 'Go']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  
+  if (i === 0) {
+    return `${bytes} ${sizes[i]}`
+  }
+  
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`
+}
+
 interface FileUploadProgressiveProps {
   onUpload?: (invoices: Invoice[]) => void
   accept?: Record<string, string[]>
@@ -217,7 +232,7 @@ export function FileUploadProgressive({
                       <div>
                         <p className="text-sm font-medium">{file.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {file.size ? (file.size / 1024 / 1024).toFixed(2) : '0.00'} MB
+                          {formatFileSize(file.size || 0)}
                         </p>
                       </div>
                     </div>

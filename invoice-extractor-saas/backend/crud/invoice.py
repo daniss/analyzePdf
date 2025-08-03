@@ -231,6 +231,24 @@ async def update_invoice_status(
             }
         )
         
+        # Record quota usage when invoice is completed
+        print(f"🔍 Status update: {old_status} -> {status} for invoice {invoice_id}")
+        if status == "completed" and old_status != "completed":
+            print(f"🎯 Recording quota for newly completed invoice {invoice_id}")
+            try:
+                from core.quota_manager import QuotaManager
+                from decimal import Decimal
+                await QuotaManager.record_invoice_usage(
+                    db=db,
+                    user_id=user_id,
+                    invoice_id=invoice_id,
+                    cost_eur=Decimal("0.002")
+                )
+                print(f"📊 Quota usage recorded for completed invoice {invoice_id}")
+            except Exception as quota_error:
+                print(f"❌ Failed to record quota usage for invoice {invoice_id}: {quota_error}")
+                # Don't fail the status update if quota recording fails
+        
         await db.commit()
         await db.refresh(invoice)
         return invoice

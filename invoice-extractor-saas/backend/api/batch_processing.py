@@ -25,6 +25,7 @@ from crud.invoice import (
 )
 # BatchExporter removed - no automatic export generation
 from core.cost_tracker import track_processing_cost
+from core.quota_manager import enforce_quota_limit
 import logging
 
 router = APIRouter()
@@ -109,6 +110,19 @@ async def batch_process_invoices(
     if len(files) == 0:
         raise HTTPException(status_code=400, detail="No files provided")
     
+    # QUOTA ENFORCEMENT: Check if user can process this many files
+    print(f"🔒 Checking quota before batch processing {len(files)} files...")
+    for i in range(len(files)):
+        try:
+            quota_info = await enforce_quota_limit(db, current_user.id)
+            print(f"✅ Quota check {i+1}/{len(files)} passed: {quota_info.get('current_usage', 0)}/{quota_info.get('monthly_limit', 0)}")
+        except HTTPException as quota_error:
+            print(f"❌ Quota enforcement blocked batch upload: {quota_error.detail}")
+            raise HTTPException(
+                status_code=402,
+                detail=f"Quota dépassé après {i} fichiers traités. {quota_error.detail.get('message', 'Limite atteinte.')}"
+            )
+    
     if len(files) > 20:  # Reasonable limit
         raise HTTPException(status_code=400, detail="Too many files. Maximum 20 files per batch")
     
@@ -165,6 +179,20 @@ async def batch_process_invoices(
             
             # GDPR-COMPLIANT: Keep file content in memory only
             invoice_data_list.append((str(db_invoice.id), contents, file.filename))
+            
+            # IMMEDIATE quota recording - no waiting for background tasks
+            try:
+                from core.quota_manager import QuotaManager
+                from decimal import Decimal
+                await QuotaManager.record_invoice_usage(
+                    db=db,
+                    user_id=current_user.id,
+                    invoice_id=db_invoice.id,
+                    cost_eur=Decimal("0.002")
+                )
+                print(f"✅ IMMEDIATE BATCH quota recorded for invoice {db_invoice.id}")
+            except Exception as quota_error:
+                print(f"❌ Failed to record batch quota for invoice {db_invoice.id}: {quota_error}")
         
         # Start batch processing in background
         background_tasks.add_task(

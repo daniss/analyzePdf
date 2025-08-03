@@ -24,11 +24,6 @@ class CostTracker:
     
     # Current pricing (update as needed)
     PRICING = {
-        ProcessingProvider.CLAUDE_OPUS: {
-            "input_tokens": 0.000015,  # $15 per 1M tokens
-            "output_tokens": 0.000075,  # $75 per 1M tokens
-            "usd_to_eur": 0.85
-        },
         "groq": {
             "input_tokens": 0.0000001,  # Groq is very cheap/free
             "output_tokens": 0.0000001,  # Extremely low cost

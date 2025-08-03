@@ -12,8 +12,6 @@ from enum import Enum
 from core.database import Base
 
 class ProcessingProvider(str, Enum):
-    CLAUDE_OPUS = "claude_opus"
-    CLAUDE_SONNET = "claude_sonnet"
     GROQ_LLAMA = "groq_llama_3.1_8b"
 
 class ProcessingType(str, Enum):
@@ -31,7 +29,7 @@ class CostTracking(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
     # Processing details
-    provider = Column(String, nullable=False)  # groq_llama_3.1_8b, claude_opus, etc.
+    provider = Column(String, nullable=False)  # groq_llama_3.1_8b
     processing_type = Column(String, nullable=False)  # single_invoice, batch_processing
     
     # Cost information
@@ -81,7 +79,6 @@ class CostSummary(Base):
     
     # Provider breakdown
     groq_cost_eur = Column(Float, default=0.0)
-    claude_cost_eur = Column(Float, default=0.0)
     
     # Processing breakdown
     single_invoice_cost = Column(Float, default=0.0)

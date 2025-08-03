@@ -49,6 +49,7 @@ interface ReviewField {
   validationStatus: 'valid' | 'invalid' | 'warning' | 'pending'
   validationMessage?: string
   hasBeenModified: boolean
+  isReadOnly?: boolean  // For calculated/derived fields that shouldn't be edited
 }
 
 interface DataReviewTableProps {
@@ -64,15 +65,45 @@ export function DataReviewTable({ invoice, onUpdate, onApprove, onReject }: Data
   const [showOnlyModified, setShowOnlyModified] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [globalValidationStatus, setGlobalValidationStatus] = useState<'pending' | 'valid' | 'invalid'>('pending')
+  const [originalAiValues, setOriginalAiValues] = useState<{[key: string]: any}>({})
 
   // Initialize review fields from invoice data
   useEffect(() => {
     if (invoice?.data) {
       const fields = createReviewFields(invoice.data)
-      setReviewFields(fields)
+      
+      setReviewFields(prevFields => {
+        // If this is the first load, capture the original AI values
+        if (prevFields.length === 0) {
+          const aiValues: {[key: string]: any} = {}
+          fields.forEach(field => {
+            aiValues[field.key] = field.aiValue
+          })
+          setOriginalAiValues(aiValues)
+          return fields
+        }
+        
+        // For subsequent updates, preserve the original AI values and modification status
+        return fields.map(newField => {
+          const existingField = prevFields.find(pf => pf.key === newField.key)
+          const originalAiValue = originalAiValues[newField.key] !== undefined ? originalAiValues[newField.key] : newField.aiValue
+          
+          if (existingField) {
+            return {
+              ...newField,
+              aiValue: originalAiValue, // Always use the original AI value
+              hasBeenModified: existingField.hasBeenModified
+            }
+          }
+          return {
+            ...newField,
+            aiValue: originalAiValue
+          }
+        })
+      })
       updateGlobalValidationStatus(fields)
     }
-  }, [invoice])
+  }, [invoice, originalAiValues])
 
   const createReviewFields = (data: any): ReviewField[] => {
     const fields: ReviewField[] = [
@@ -277,8 +308,239 @@ export function DataReviewTable({ invoice, onUpdate, onApprove, onReject }: Data
         validationStatus: data.customer?.tva_number ? 'valid' : 'warning',
         validationMessage: data.customer?.tva_number ? undefined : 'N° TVA recommandé',
         hasBeenModified: false
+      },
+
+      // Addresses
+      {
+        key: 'vendor_address',
+        label: 'Adresse Fournisseur',
+        category: 'business',
+        aiValue: data.vendor?.address || data.vendor_address,
+        currentValue: data.vendor?.address || data.vendor_address,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 88,
+        validationStatus: (data.vendor?.address || data.vendor_address) ? 'valid' : 'warning',
+        validationMessage: (data.vendor?.address || data.vendor_address) ? undefined : 'Adresse recommandée',
+        hasBeenModified: false
+      },
+      {
+        key: 'customer_address',
+        label: 'Adresse Client',
+        category: 'business',
+        aiValue: data.customer?.address || data.customer_address,
+        currentValue: data.customer?.address || data.customer_address,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 88,
+        validationStatus: (data.customer?.address || data.customer_address) ? 'valid' : 'warning',
+        validationMessage: (data.customer?.address || data.customer_address) ? undefined : 'Adresse recommandée',
+        hasBeenModified: false
+      },
+
+      // Payment Information
+      {
+        key: 'bank_details',
+        label: 'IBAN Fournisseur',
+        category: 'business',
+        aiValue: data.bank_details,
+        currentValue: data.bank_details,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 75,
+        validationStatus: data.bank_details ? 'valid' : 'warning',
+        validationMessage: data.bank_details ? undefined : 'IBAN/RIB recommandé',
+        hasBeenModified: false
+      },
+      {
+        key: 'payment_method',
+        label: 'Moyen de Paiement',
+        category: 'business',
+        aiValue: data.payment_method,
+        currentValue: data.payment_method,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 80,
+        validationStatus: data.payment_method ? 'valid' : 'warning',
+        validationMessage: data.payment_method ? undefined : 'Moyen de paiement recommandé',
+        hasBeenModified: false
+      },
+      {
+        key: 'payment_terms',
+        label: 'Conditions de Paiement',
+        category: 'business',
+        aiValue: data.payment_terms,
+        currentValue: data.payment_terms,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 85,
+        validationStatus: data.payment_terms ? 'valid' : 'warning',
+        validationMessage: data.payment_terms ? undefined : 'Conditions de paiement recommandées',
+        hasBeenModified: false
+      },
+
+      // Business Context
+      {
+        key: 'order_number',
+        label: 'Numéro de Commande',
+        category: 'business',
+        aiValue: data.order_number,
+        currentValue: data.order_number,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 70,
+        validationStatus: data.order_number ? 'valid' : 'warning',
+        validationMessage: data.order_number ? undefined : 'Numéro de commande recommandé',
+        hasBeenModified: false
+      },
+      {
+        key: 'project_reference',
+        label: 'Référence Projet',
+        category: 'business',
+        aiValue: data.project_reference,
+        currentValue: data.project_reference,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 70,
+        validationStatus: data.project_reference ? 'valid' : 'warning',
+        validationMessage: data.project_reference ? undefined : 'Référence projet recommandée',
+        hasBeenModified: false
+      },
+      {
+        key: 'contract_number',
+        label: 'Numéro de Contrat',
+        category: 'business',
+        aiValue: data.contract_number,
+        currentValue: data.contract_number,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 70,
+        validationStatus: data.contract_number ? 'valid' : 'warning',
+        validationMessage: data.contract_number ? undefined : 'Numéro de contrat recommandé',
+        hasBeenModified: false
+      },
+      {
+        key: 'delivery_date',
+        label: 'Date de Livraison',
+        category: 'business',
+        aiValue: data.delivery_date,
+        currentValue: data.delivery_date,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'date',
+        confidence: 75,
+        validationStatus: data.delivery_date ? 'valid' : 'warning',
+        validationMessage: data.delivery_date ? undefined : 'Date de livraison recommandée',
+        hasBeenModified: false
+      },
+      {
+        key: 'delivery_address',
+        label: 'Adresse de Livraison',
+        category: 'business',
+        aiValue: data.delivery_address,
+        currentValue: data.delivery_address,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 75,
+        validationStatus: data.delivery_address ? 'valid' : 'warning',
+        validationMessage: data.delivery_address ? undefined : 'Adresse de livraison recommandée',
+        hasBeenModified: false
+      },
+      {
+        key: 'notes',
+        label: 'Notes/Commentaires',
+        category: 'business',
+        aiValue: data.notes,
+        currentValue: data.notes,
+        isEditing: false,
+        isRequired: false,
+        fieldType: 'text',
+        confidence: 80,
+        validationStatus: data.notes ? 'valid' : 'warning',
+        validationMessage: data.notes ? undefined : 'Notes complémentaires recommandées',
+        hasBeenModified: false
       }
     ]
+
+    // Add line items fields (aggregated summary)
+    if (data.line_items && data.line_items.length > 0) {
+      const lineDescriptions = data.line_items.map((item: any) => item.description).filter(Boolean).join(' | ')
+      const totalQuantity = data.line_items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)
+      const avgUnitPrice = data.line_items.reduce((sum: number, item: any) => sum + ((item.quantity || 0) * (item.unit_price || 0)), 0) / Math.max(totalQuantity, 1)
+      const vatRates = [...new Set(data.line_items.map((item: any) => item.tva_rate).filter((rate: any) => rate !== null && rate !== undefined))].join(' | ')
+
+      fields.push(
+        {
+          key: 'line_items_descriptions',
+          label: 'Désignation des Lignes',
+          category: 'line_items',
+          aiValue: lineDescriptions,
+          currentValue: lineDescriptions,
+          isEditing: false,
+          isRequired: false,
+          fieldType: 'text',
+          confidence: 90,
+          validationStatus: lineDescriptions ? 'valid' : 'warning',
+          validationMessage: lineDescriptions ? undefined : 'Descriptions de lignes manquantes',
+          hasBeenModified: false,
+          isReadOnly: true  // Make this field read-only since it's calculated
+        },
+        {
+          key: 'line_items_total_quantity',
+          label: 'Quantité Totale',
+          category: 'line_items',
+          aiValue: totalQuantity,
+          currentValue: totalQuantity,
+          isEditing: false,
+          isRequired: false,
+          fieldType: 'number',
+          confidence: 92,
+          validationStatus: totalQuantity > 0 ? 'valid' : 'warning',
+          validationMessage: totalQuantity > 0 ? undefined : 'Quantités manquantes',
+          hasBeenModified: false,
+          isReadOnly: true  // Make this field read-only since it's calculated
+        },
+        {
+          key: 'line_items_avg_unit_price',
+          label: 'Prix Unitaire Moyen',
+          category: 'line_items',
+          aiValue: avgUnitPrice,
+          currentValue: avgUnitPrice,
+          isEditing: false,
+          isRequired: false,
+          fieldType: 'number',
+          confidence: 88,
+          validationStatus: avgUnitPrice > 0 ? 'valid' : 'warning',
+          validationMessage: avgUnitPrice > 0 ? undefined : 'Prix unitaires manquants',
+          hasBeenModified: false,
+          isReadOnly: true  // Make this field read-only since it's calculated
+        },
+        {
+          key: 'line_items_vat_rates',
+          label: 'TVA par Ligne',
+          category: 'line_items',
+          aiValue: vatRates,
+          currentValue: vatRates,
+          isEditing: false,
+          isRequired: false,
+          fieldType: 'text',
+          confidence: 85,
+          validationStatus: vatRates ? 'valid' : 'warning',
+          validationMessage: vatRates ? undefined : 'Taux TVA par ligne manquants',
+          hasBeenModified: false,
+          isReadOnly: true  // Make this field read-only since it's calculated
+        }
+      )
+    }
 
     return fields
   }
@@ -297,6 +559,7 @@ export function DataReviewTable({ invoice, onUpdate, onApprove, onReject }: Data
   }
 
   const startEditing = (fieldKey: string) => {
+    console.log('Starting edit for field:', fieldKey)
     setReviewFields(prev => prev.map(field =>
       field.key === fieldKey 
         ? { ...field, isEditing: true }
@@ -313,13 +576,18 @@ export function DataReviewTable({ invoice, onUpdate, onApprove, onReject }: Data
   }
 
   const saveField = async (fieldKey: string, newValue: any) => {
+    console.log('Saving field:', fieldKey, 'with value:', newValue)
     setIsLoading(true)
     try {
       // Update field via API
       await apiClient.updateInvoiceField(invoice.id, fieldKey, newValue)
       
+      // Find the field to get its type for validation
+      const fieldToUpdate = reviewFields.find(field => field.key === fieldKey)
+      const fieldType = fieldToUpdate?.fieldType || 'text'
+      
       // Validate the new value
-      const newValidationStatus = validateField(fieldKey.includes('.') ? fieldKey.split('.')[1] : fieldKey, newValue)
+      const newValidationStatus = validateField(fieldType, newValue)
       
       // Update local state
       setReviewFields(prev => prev.map(field =>
@@ -379,7 +647,7 @@ export function DataReviewTable({ invoice, onUpdate, onApprove, onReject }: Data
               ...field, 
               isEditing: false,
               validationStatus: 'invalid',
-              validationMessage: `Erreur: ${error.message || 'Mise à jour échouée'}`
+              validationMessage: `Erreur: ${error instanceof Error ? error.message : 'Mise à jour échouée'}`
             }
           : field
       ))
@@ -508,7 +776,8 @@ export function DataReviewTable({ invoice, onUpdate, onApprove, onReject }: Data
     { key: 'basic', label: 'Informations de Base', count: reviewFields.filter(f => f.category === 'basic').length },
     { key: 'amounts', label: 'Montants', count: reviewFields.filter(f => f.category === 'amounts').length },
     { key: 'business', label: 'Entreprises', count: reviewFields.filter(f => f.category === 'business').length },
-    { key: 'french_compliance', label: 'Conformité Française', count: reviewFields.filter(f => f.category === 'french_compliance').length }
+    { key: 'french_compliance', label: 'Conformité Française', count: reviewFields.filter(f => f.category === 'french_compliance').length },
+    { key: 'line_items', label: 'Lignes de Facture', count: reviewFields.filter(f => f.category === 'line_items').length }
   ]
 
   const modifiedCount = reviewFields.filter(f => f.hasBeenModified).length
@@ -646,6 +915,7 @@ export function DataReviewTable({ invoice, onUpdate, onApprove, onReject }: Data
                   {field.isEditing ? (
                     <div className="flex items-center gap-2">
                       <Input
+                        id={`field-input-${field.key}`}
                         type={field.fieldType === 'number' ? 'number' : 'text'}
                         defaultValue={field.currentValue || ''}
                         className="h-8"
@@ -693,7 +963,7 @@ export function DataReviewTable({ invoice, onUpdate, onApprove, onReject }: Data
                           size="sm" 
                           variant="ghost"
                           onClick={() => {
-                            const input = document.querySelector(`input`) as HTMLInputElement
+                            const input = document.getElementById(`field-input-${field.key}`) as HTMLInputElement
                             saveField(field.key, input?.value || '')
                           }}
                         >
@@ -709,13 +979,21 @@ export function DataReviewTable({ invoice, onUpdate, onApprove, onReject }: Data
                       </>
                     ) : (
                       <>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => startEditing(field.key)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        {!field.isReadOnly && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => startEditing(field.key)}
+                            title={field.isReadOnly ? "Champ calculé automatiquement" : "Modifier ce champ"}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {field.isReadOnly && (
+                          <span className="text-xs text-gray-500 italic">
+                            Calculé
+                          </span>
+                        )}
                         {field.hasBeenModified && (
                           <Button 
                             size="sm" 

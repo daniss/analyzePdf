@@ -158,31 +158,50 @@ async def export_csv(
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';')  # French CSV uses semicolon
     
-    # Simplified MVP CSV headers - French accountant friendly (15 columns max)
+    # Complete CSV headers - All required fields for French accountants
     headers = [
         "Numéro_Facture",
-        "Date", 
+        "Date_Émission", 
         "Date_Échéance",
-        "Fournisseur_Nom",
-        "Fournisseur_SIRET",
-        "Fournisseur_Adresse",
-        "Client_Nom", 
-        "Client_SIRET",
         "Montant_HT",
         "Montant_TVA", 
         "Montant_TTC",
-        "Taux_TVA_Principal",
+        "Fournisseur_Nom",
+        "Fournisseur_SIRET",
+        "Fournisseur_SIREN",
+        "Fournisseur_TVA",
+        "Fournisseur_Adresse",
+        "Fournisseur_IBAN",
+        "Client_Nom", 
+        "Client_SIRET",
+        "Client_SIREN",
+        "Client_TVA",
+        "Client_Adresse",
+        "Désignation_Lignes",
+        "Quantité_Total",
+        "Prix_Unitaire_Moyen",
+        "TVA_Par_Ligne",
+        "Moyen_Paiement",
         "Conditions_Paiement",
-        "Statut_SIRET_Validation",
+        "Numéro_Commande",
+        "Numéro_Contrat",
+        "Référence_Projet",
+        "Date_Livraison",
+        "Adresse_Livraison",
         "Notes"
     ]
     writer.writerow(headers)
     
-    # Simplified data extraction - same logic as batch exporter
-    # Extract essential vendor information only
+    # Complete data extraction - all required fields
     vendor = invoice_data.vendor
+    customer = invoice_data.customer
+    
+    # Vendor information
     vendor_name = vendor.name if vendor else (invoice_data.vendor_name or "")
     vendor_siret = vendor.siret_number if vendor else ""
+    vendor_siren = vendor.siren_number if vendor else ""
+    vendor_tva = vendor.tva_number if vendor else ""
+    vendor_iban = invoice_data.bank_details or ""
     
     # Build complete vendor address 
     vendor_address_parts = []
@@ -193,65 +212,97 @@ async def export_csv(
             vendor_address_parts.append(f"{vendor.postal_code} {vendor.city}")
         elif vendor.city:
             vendor_address_parts.append(vendor.city)
+        if vendor.country and vendor.country != "France":
+            vendor_address_parts.append(vendor.country)
     else:
         if invoice_data.vendor_address:
             vendor_address_parts.append(invoice_data.vendor_address)
-    
     vendor_address = ", ".join(vendor_address_parts)
     
-    # Extract essential customer information only
-    customer = invoice_data.customer
+    # Customer information
     customer_name = customer.name if customer else (invoice_data.customer_name or "")
     customer_siret = customer.siret_number if customer else ""
+    customer_siren = customer.siren_number if customer else ""
+    customer_tva = customer.tva_number if customer else ""
+    
+    # Build complete customer address
+    customer_address_parts = []
+    if customer:
+        if customer.address:
+            customer_address_parts.append(customer.address)
+        if customer.postal_code and customer.city:
+            customer_address_parts.append(f"{customer.postal_code} {customer.city}")
+        elif customer.city:
+            customer_address_parts.append(customer.city)
+        if customer.country and customer.country != "France":
+            customer_address_parts.append(customer.country)
+    else:
+        if invoice_data.customer_address:
+            customer_address_parts.append(invoice_data.customer_address)
+    customer_address = ", ".join(customer_address_parts)
     
     # Financial totals with French formatting
     subtotal = invoice_data.subtotal_ht or invoice_data.subtotal or 0
     total_tax = invoice_data.total_tva or invoice_data.tax or 0
     total = invoice_data.total_ttc or invoice_data.total or 0
     
-    # Determine principal VAT rate (most common rate)
-    principal_vat_rate = 0.0
-    if invoice_data.tva_breakdown:
-        # Find the TVA rate with highest base amount
-        max_base = 0
-        for tva_item in invoice_data.tva_breakdown:
-            if tva_item.taxable_amount > max_base:
-                max_base = tva_item.taxable_amount
-                principal_vat_rate = tva_item.rate
+    # Line items aggregation
+    line_items = invoice_data.line_items or []
+    total_quantity = sum(item.quantity or 0 for item in line_items)
     
-    # SIRET validation status
-    siret_validation_status = "Non vérifié"
-    if vendor_siret and len(vendor_siret) == 14 and vendor_siret.isdigit():
-        siret_validation_status = "Format valide"
-    elif vendor_siret:
-        siret_validation_status = "Format invalide"
+    # Calculate average unit price (weighted by quantity)
+    total_value = sum((item.quantity or 0) * (item.unit_price or 0) for item in line_items)
+    avg_unit_price = total_value / total_quantity if total_quantity > 0 else 0
     
-    # Combine notes (simple approach)
-    notes_parts = []
-    if invoice_data.notes:
-        notes_parts.append(invoice_data.notes)
-    if hasattr(invoice_data, 'order_number') and invoice_data.order_number:
-        notes_parts.append(f"Cmd: {invoice_data.order_number}")
+    # Line descriptions (concatenated)
+    line_descriptions = []
+    for item in line_items:
+        if item.description:
+            line_descriptions.append(item.description)
+    designation_lines = " | ".join(line_descriptions) if line_descriptions else ""
     
-    notes = " | ".join(notes_parts) if notes_parts else ""
+    # VAT per line (concatenated rates)
+    vat_rates = []
+    for item in line_items:
+        if item.tva_rate is not None:
+            vat_rates.append(f"{item.tva_rate:.1f}%")
+    tva_par_ligne = " | ".join(set(vat_rates)) if vat_rates else ""  # Remove duplicates
     
-    # Generate simple MVP row (15 columns) - French accountant friendly
+    # Payment information
+    payment_method = invoice_data.payment_method or ""
+    payment_terms = invoice_data.payment_terms or ""
+    
+    # Generate complete row with all required fields
     row = [
         invoice_data.invoice_number or "",                              # Numéro_Facture
-        invoice_data.date or "",                                        # Date
+        invoice_data.date or "",                                        # Date_Émission
         invoice_data.due_date or "",                                    # Date_Échéance
-        vendor_name,                                                    # Fournisseur_Nom
-        vendor_siret,                                                   # Fournisseur_SIRET
-        vendor_address,                                                 # Fournisseur_Adresse
-        customer_name,                                                  # Client_Nom
-        customer_siret,                                                 # Client_SIRET
         f"{subtotal:.2f}".replace('.', ','),                          # Montant_HT
         f"{total_tax:.2f}".replace('.', ','),                         # Montant_TVA
         f"{total:.2f}".replace('.', ','),                             # Montant_TTC
-        f"{principal_vat_rate:.1f}%".replace('.', ','),               # Taux_TVA_Principal
-        invoice_data.payment_terms or "",                              # Conditions_Paiement
-        siret_validation_status,                                       # Statut_SIRET_Validation
-        notes                                                          # Notes
+        vendor_name,                                                    # Fournisseur_Nom
+        vendor_siret,                                                   # Fournisseur_SIRET
+        vendor_siren,                                                   # Fournisseur_SIREN
+        vendor_tva,                                                     # Fournisseur_TVA
+        vendor_address,                                                 # Fournisseur_Adresse
+        vendor_iban,                                                    # Fournisseur_IBAN
+        customer_name,                                                  # Client_Nom
+        customer_siret,                                                 # Client_SIRET
+        customer_siren,                                                 # Client_SIREN
+        customer_tva,                                                   # Client_TVA
+        customer_address,                                               # Client_Adresse
+        designation_lines,                                              # Désignation_Lignes
+        f"{total_quantity:.2f}".replace('.', ','),                    # Quantité_Total
+        f"{avg_unit_price:.2f}".replace('.', ','),                    # Prix_Unitaire_Moyen
+        tva_par_ligne,                                                  # TVA_Par_Ligne
+        payment_method,                                                 # Moyen_Paiement
+        payment_terms,                                                  # Conditions_Paiement
+        invoice_data.order_number or "",                                # Numéro_Commande
+        invoice_data.contract_number or "",                             # Numéro_Contrat
+        invoice_data.project_reference or "",                           # Référence_Projet
+        invoice_data.delivery_date or "",                               # Date_Livraison
+        invoice_data.delivery_address or "",                            # Adresse_Livraison
+        invoice_data.notes or ""                                        # Notes
     ]
     
     writer.writerow(row)
@@ -668,36 +719,55 @@ async def export_batch(
             }
         )
     elif format == "csv":
-        # Generate simplified CSV file with all invoices (15 columns max - French accountant friendly)
+        # Generate complete CSV file with all invoices - All required fields
         output = io.StringIO()
         writer = csv.writer(output, delimiter=';')
         
-        # Simplified MVP CSV headers - French accountant friendly (15 columns max)
+        # Complete CSV headers - All required fields for French accountants
         headers = [
             "Numéro_Facture",
-            "Date", 
+            "Date_Émission", 
             "Date_Échéance",
-            "Fournisseur_Nom",
-            "Fournisseur_SIRET",
-            "Fournisseur_Adresse",
-            "Client_Nom", 
-            "Client_SIRET",
             "Montant_HT",
             "Montant_TVA", 
             "Montant_TTC",
-            "Taux_TVA_Principal",
+            "Fournisseur_Nom",
+            "Fournisseur_SIRET",
+            "Fournisseur_SIREN",
+            "Fournisseur_TVA",
+            "Fournisseur_Adresse",
+            "Fournisseur_IBAN",
+            "Client_Nom", 
+            "Client_SIRET",
+            "Client_SIREN",
+            "Client_TVA",
+            "Client_Adresse",
+            "Désignation_Lignes",
+            "Quantité_Total",
+            "Prix_Unitaire_Moyen",
+            "TVA_Par_Ligne",
+            "Moyen_Paiement",
             "Conditions_Paiement",
-            "Statut_SIRET_Validation",
+            "Numéro_Commande",
+            "Numéro_Contrat",
+            "Référence_Projet",
+            "Date_Livraison",
+            "Adresse_Livraison",
             "Notes"
         ]
         writer.writerow(headers)
         
-        # Write data for each invoice
+        # Write data for each invoice - complete format
         for invoice in invoices:
-            # Extract essential vendor information only
             vendor = invoice.vendor
+            customer = invoice.customer
+            
+            # Vendor information
             vendor_name = vendor.name if vendor else (invoice.vendor_name or "")
             vendor_siret = vendor.siret_number if vendor else ""
+            vendor_siren = vendor.siren_number if vendor else ""
+            vendor_tva = vendor.tva_number if vendor else ""
+            vendor_iban = invoice.bank_details or ""
             
             # Build complete vendor address 
             vendor_address_parts = []
@@ -708,65 +778,97 @@ async def export_batch(
                     vendor_address_parts.append(f"{vendor.postal_code} {vendor.city}")
                 elif vendor.city:
                     vendor_address_parts.append(vendor.city)
+                if vendor.country and vendor.country != "France":
+                    vendor_address_parts.append(vendor.country)
             else:
                 if invoice.vendor_address:
                     vendor_address_parts.append(invoice.vendor_address)
-            
             vendor_address = ", ".join(vendor_address_parts)
             
-            # Extract essential customer information only
-            customer = invoice.customer
+            # Customer information
             customer_name = customer.name if customer else (invoice.customer_name or "")
             customer_siret = customer.siret_number if customer else ""
+            customer_siren = customer.siren_number if customer else ""
+            customer_tva = customer.tva_number if customer else ""
+            
+            # Build complete customer address
+            customer_address_parts = []
+            if customer:
+                if customer.address:
+                    customer_address_parts.append(customer.address)
+                if customer.postal_code and customer.city:
+                    customer_address_parts.append(f"{customer.postal_code} {customer.city}")
+                elif customer.city:
+                    customer_address_parts.append(customer.city)
+                if customer.country and customer.country != "France":
+                    customer_address_parts.append(customer.country)
+            else:
+                if invoice.customer_address:
+                    customer_address_parts.append(invoice.customer_address)
+            customer_address = ", ".join(customer_address_parts)
             
             # Financial totals with French formatting
             subtotal = invoice.subtotal_ht or invoice.subtotal or 0
             total_tax = invoice.total_tva or invoice.tax or 0
             total = invoice.total_ttc or invoice.total or 0
             
-            # Determine principal VAT rate (most common rate)
-            principal_vat_rate = 0.0
-            if invoice.tva_breakdown:
-                # Find the TVA rate with highest base amount
-                max_base = 0
-                for tva_item in invoice.tva_breakdown:
-                    if tva_item.taxable_amount > max_base:
-                        max_base = tva_item.taxable_amount
-                        principal_vat_rate = tva_item.rate
+            # Line items aggregation
+            line_items = invoice.line_items or []
+            total_quantity = sum(item.quantity or 0 for item in line_items)
             
-            # SIRET validation status
-            siret_validation_status = "Non vérifié"
-            if vendor_siret and len(vendor_siret) == 14 and vendor_siret.isdigit():
-                siret_validation_status = "Format valide"
-            elif vendor_siret:
-                siret_validation_status = "Format invalide"
+            # Calculate average unit price (weighted by quantity)
+            total_value = sum((item.quantity or 0) * (item.unit_price or 0) for item in line_items)
+            avg_unit_price = total_value / total_quantity if total_quantity > 0 else 0
             
-            # Combine notes (simple approach)
-            notes_parts = []
-            if invoice.notes:
-                notes_parts.append(invoice.notes)
-            if hasattr(invoice, 'order_number') and invoice.order_number:
-                notes_parts.append(f"Cmd: {invoice.order_number}")
+            # Line descriptions (concatenated)
+            line_descriptions = []
+            for item in line_items:
+                if item.description:
+                    line_descriptions.append(item.description)
+            designation_lines = " | ".join(line_descriptions) if line_descriptions else ""
             
-            notes = " | ".join(notes_parts) if notes_parts else ""
+            # VAT per line (concatenated rates)
+            vat_rates = []
+            for item in line_items:
+                if item.tva_rate is not None:
+                    vat_rates.append(f"{item.tva_rate:.1f}%")
+            tva_par_ligne = " | ".join(set(vat_rates)) if vat_rates else ""  # Remove duplicates
             
-            # Generate simple MVP row (15 columns) - French accountant friendly
+            # Payment information
+            payment_method = invoice.payment_method or ""
+            payment_terms = invoice.payment_terms or ""
+            
+            # Generate complete row with all required fields
             row = [
                 invoice.invoice_number or "",                              # Numéro_Facture
-                invoice.date or "",                                        # Date
+                invoice.date or "",                                        # Date_Émission
                 invoice.due_date or "",                                    # Date_Échéance
-                vendor_name,                                               # Fournisseur_Nom
-                vendor_siret,                                              # Fournisseur_SIRET
-                vendor_address,                                            # Fournisseur_Adresse
-                customer_name,                                             # Client_Nom
-                customer_siret,                                            # Client_SIRET
                 f"{subtotal:.2f}".replace('.', ','),                      # Montant_HT
                 f"{total_tax:.2f}".replace('.', ','),                     # Montant_TVA
                 f"{total:.2f}".replace('.', ','),                         # Montant_TTC
-                f"{principal_vat_rate:.1f}%".replace('.', ','),           # Taux_TVA_Principal
-                invoice.payment_terms or "",                              # Conditions_Paiement
-                siret_validation_status,                                  # Statut_SIRET_Validation
-                notes                                                     # Notes
+                vendor_name,                                               # Fournisseur_Nom
+                vendor_siret,                                              # Fournisseur_SIRET
+                vendor_siren,                                              # Fournisseur_SIREN
+                vendor_tva,                                                # Fournisseur_TVA
+                vendor_address,                                            # Fournisseur_Adresse
+                vendor_iban,                                               # Fournisseur_IBAN
+                customer_name,                                             # Client_Nom
+                customer_siret,                                            # Client_SIRET
+                customer_siren,                                            # Client_SIREN
+                customer_tva,                                              # Client_TVA
+                customer_address,                                          # Client_Adresse
+                designation_lines,                                         # Désignation_Lignes
+                f"{total_quantity:.2f}".replace('.', ','),               # Quantité_Total
+                f"{avg_unit_price:.2f}".replace('.', ','),               # Prix_Unitaire_Moyen
+                tva_par_ligne,                                             # TVA_Par_Ligne
+                payment_method,                                            # Moyen_Paiement
+                payment_terms,                                             # Conditions_Paiement
+                invoice.order_number or "",                                # Numéro_Commande
+                invoice.contract_number or "",                             # Numéro_Contrat
+                invoice.project_reference or "",                           # Référence_Projet
+                invoice.delivery_date or "",                               # Date_Livraison
+                invoice.delivery_address or "",                            # Adresse_Livraison
+                invoice.notes or ""                                        # Notes
             ]
             
             writer.writerow(row)
@@ -857,7 +959,7 @@ async def get_export_formats(
             {
                 "id": "csv",
                 "name": "CSV Français",
-                "description": "Format CSV avec séparateur point-virgule et formatage français",
+                "description": "Format CSV complet avec 23 champs incluant SIRET, SIREN, TVA, IBAN et détails lignes",
                 "extension": ".csv",
                 "accounting_software": ["Excel", "LibreOffice Calc"]
             },

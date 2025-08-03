@@ -473,14 +473,14 @@ class EnhancedPDFProcessor:
         
         return pages_info
     
-    async def prepare_for_claude(self, processed_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def prepare_for_ai(self, processed_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Prepare processed data for Claude API, minimizing token usage.
+        Prepare processed data for AI processing, minimizing token usage.
         
-        Returns a structured prompt and data for Claude.
+        Returns structured data for AI processing.
         """
         # Create a condensed representation
-        claude_data = {
+        ai_data = {
             "extraction_method": processed_data["method"],
             "pages_count": len(processed_data["pages_info"]),
             "pre_extracted_fields": {},
@@ -493,12 +493,12 @@ class EnhancedPDFProcessor:
             if matches:
                 # Sort by confidence and take the best match
                 best_match = max(matches, key=lambda x: x.get("confidence", 0))
-                claude_data["pre_extracted_fields"][field_name] = best_match["value"]
+                ai_data["pre_extracted_fields"][field_name] = best_match["value"]
         
         # Include detected line items
         for table in processed_data["tables"]:
             if table["type"] == "line_item":
-                claude_data["line_items_detected"].append(table["data"])
+                ai_data["line_items_detected"].append(table["data"])
         
         # Create structured text content
         if processed_data["method"] == "native_text":
@@ -512,22 +512,22 @@ class EnhancedPDFProcessor:
             
             # Create readable text representation
             for page, texts in sorted(text_by_page.items()):
-                claude_data["text_content"] += f"\n--- Page {page + 1} ---\n"
-                claude_data["text_content"] += " ".join(texts)
+                ai_data["text_content"] += f"\n--- Page {page + 1} ---\n"
+                ai_data["text_content"] += " ".join(texts)
         
         # Add confidence indicators
-        claude_data["extraction_confidence"] = "high" if processed_data["method"] == "native_text" else "medium"
+        ai_data["extraction_confidence"] = "high" if processed_data["method"] == "native_text" else "medium"
         
         # Add processing metadata
-        claude_data["processing_time_seconds"] = processed_data["processing_time"]["total_seconds"]
+        ai_data["processing_time_seconds"] = processed_data["processing_time"]["total_seconds"]
         
-        return claude_data
+        return ai_data
     
     @staticmethod
     async def process_uploaded_file(file_content: bytes, filename: str) -> Dict[str, Any]:
         """
         Process an uploaded file with enhanced extraction.
-        Returns structured data ready for Claude processing.
+        Returns structured data ready for AI processing.
         """
         processor = EnhancedPDFProcessor()
         file_extension = os.path.splitext(filename)[1].lower()
@@ -543,15 +543,15 @@ class EnhancedPDFProcessor:
                 processed_data = await processor.process_pdf(tmp_path)
                 
                 # Prepare for Claude
-                claude_ready_data = await processor.prepare_for_claude(processed_data)
+                ai_ready_data = await processor.prepare_for_ai(processed_data)
                 
                 # Include images only if OCR was used
                 if processed_data["method"] == "ocr":
-                    claude_ready_data["images"] = processed_data["images"]
+                    ai_ready_data["images"] = processed_data["images"]
                 
                 return {
                     "success": True,
-                    "data": claude_ready_data,
+                    "data": ai_ready_data,
                     "raw_extraction": processed_data  # Keep raw data for debugging
                 }
                 
@@ -620,9 +620,9 @@ class EnhancedPDFProcessor:
             raise ValueError(f"Unsupported file type: {file_extension}")
     
     @staticmethod
-    def estimate_tokens(claude_data: Dict[str, Any]) -> int:
+    def estimate_tokens(ai_data: Dict[str, Any]) -> int:
         """
-        Estimate token usage for Claude API based on prepared data.
+        Estimate token usage for AI processing based on prepared data.
         More accurate estimation for the enhanced processor.
         """
         tokens = 0
@@ -631,18 +631,18 @@ class EnhancedPDFProcessor:
         tokens += 500
         
         # Tokens for pre-extracted fields (much smaller than full OCR)
-        tokens += len(json.dumps(claude_data.get("pre_extracted_fields", {}))) // 4
+        tokens += len(json.dumps(ai_data.get("pre_extracted_fields", {}))) // 4
         
         # Tokens for line items
-        tokens += len(json.dumps(claude_data.get("line_items_detected", []))) // 4
+        tokens += len(json.dumps(ai_data.get("line_items_detected", []))) // 4
         
         # Tokens for text content (if native extraction)
-        if "text_content" in claude_data:
-            tokens += len(claude_data["text_content"]) // 4
+        if "text_content" in ai_data:
+            tokens += len(ai_data["text_content"]) // 4
         
         # Tokens for images (if OCR was used)
-        if "images" in claude_data:
+        if "images" in ai_data:
             # Approximately 1000 tokens per image for Claude vision
-            tokens += len(claude_data["images"]) * 1000
+            tokens += len(ai_data["images"]) * 1000
         
         return tokens

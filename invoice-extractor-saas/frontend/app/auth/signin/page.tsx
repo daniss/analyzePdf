@@ -79,9 +79,9 @@ export default function SignInPage() {
               {loading ? 'Connexion...' : 'Se connecter'}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
-              Vous n'avez pas de compte ?{' '}
+              Vous n&apos;avez pas de compte ?{' '}
               <Link href="/auth/signup" className="text-primary hover:underline">
-                S'inscrire
+                S&apos;inscrire
               </Link>
             </p>
           </CardFooter>

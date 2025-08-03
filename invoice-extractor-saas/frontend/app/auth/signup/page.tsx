@@ -71,7 +71,7 @@ export default function SignUpPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Nom de l'entreprise (Optionnel)</Label>
+              <Label htmlFor="company">Nom de l&apos;entreprise (Optionnel)</Label>
               <Input
                 id="company"
                 type="text"
@@ -116,7 +116,7 @@ export default function SignUpPage() {
             <p className="text-xs text-center text-muted-foreground">
               En vous inscrivant, vous acceptez nos{' '}
               <Link href="/terms" className="underline">
-                Conditions d'utilisation
+                Conditions d&apos;utilisation
               </Link>{' '}
               et notre{' '}
               <Link href="/privacy" className="underline">

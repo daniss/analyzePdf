@@ -492,7 +492,7 @@ async def _assess_transfer_requirements(
         data_categories=request.data_categories,
         data_subjects_count=1000,  # Estimate
         recipient_country="US",
-        recipient_organization="Anthropic PBC",
+        recipient_organization="AI Service Provider",
         legal_basis="legitimate_interest",
         urgency_level="normal",
         retention_period_days=1

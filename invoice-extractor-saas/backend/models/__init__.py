@@ -1,6 +1,7 @@
 # Import all models for SQLAlchemy discovery
 from .gdpr_models import *
 from .user import *
+from .subscription import *
 from .siret_validation import *
 from .french_compliance import *
 from .cost_tracking import *

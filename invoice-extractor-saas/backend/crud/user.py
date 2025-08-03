@@ -5,6 +5,7 @@ User CRUD operations with comprehensive error handling and validation
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 from typing import Optional
 import uuid
 
@@ -16,9 +17,13 @@ from models.gdpr_models import AuditEventType
 
 
 async def get_user_by_id(db: AsyncSession, user_id: uuid.UUID) -> Optional[User]:
-    """Get user by ID with audit logging"""
+    """Get user by ID with subscription data and audit logging"""
     try:
-        result = await db.execute(select(User).where(User.id == user_id))
+        result = await db.execute(
+            select(User)
+            .options(selectinload(User.subscription))
+            .where(User.id == user_id)
+        )
         user = result.scalar_one_or_none()
         
         if user:

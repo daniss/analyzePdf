@@ -61,7 +61,7 @@ export function useFrenchValidation(): FrenchValidationHook {
       return { isValid: false, error: 'Le taux de TVA doit être entre 0% et 100%' }
     }
 
-    const validRates = Object.values(FRENCH_TVA_RATES)
+    const validRates = Object.values(FRENCH_TVA_RATES) as number[]
     if (!validRates.includes(rate)) {
       return { 
         isValid: false, 
